@@ -20,7 +20,7 @@ ARG NODE_VERSION=16.15.1
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 
-FROM ${BUILDER_IMAGE} as dev
+FROM ${BUILDER_IMAGE} as builder
 ARG NODE_VERSION
 
 # install build and dev dependencies
@@ -40,7 +40,7 @@ RUN mix local.hex --force && \
   mix local.rebar --force
 
 # set build ENV
-ENV MIX_ENV="dev"
+ENV MIX_ENV="prod"
 
 COPY mix.* ./
 RUN mix deps.get --only $MIX_ENV
@@ -50,7 +50,7 @@ RUN mkdir config
 # copy compile-time config files before we compile dependencies
 # to ensure any relevant config change will trigger the dependencies
 # to be re-compiled.
-COPY config/config.exs config/dev.exs config/
+COPY config/config.exs config/${MIX_ENV}.exs config/
 RUN mix deps.compile
 
 COPY priv priv
@@ -105,8 +105,8 @@ ENV MIX_ENV="prod"
 ENV ADAPTORS_PATH /app/priv/openfn
 
 # Only copy the final release and the adaptor directory from the build stage
-COPY --from=dev --chown=lightning:root /app/_build/${MIX_ENV}/rel/lightning ./
-COPY --from=dev --chown=lightning:root /app/priv/openfn ./priv/openfn
+COPY --from=builder --chown=lightning:root /app/_build/${MIX_ENV}/rel/lightning ./
+COPY --from=builder --chown=lightning:root /app/priv/openfn ./priv/openfn
 
 USER lightning
 
