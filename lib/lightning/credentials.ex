@@ -9,6 +9,7 @@ defmodule Lightning.Credentials do
 
   alias Lightning.Credentials.Credential
   alias Lightning.Projects.Project
+  alias Lightning.Accounts.User
 
   @doc """
   Returns the list of credentials.
@@ -124,5 +125,9 @@ defmodule Lightning.Credentials do
       credential,
       attrs |> coerce_json_field("body")
     )
+  end
+
+  def transfer_ownership(%Credential{} = credential, %User{} = user) do
+    update_credential(credential, %Credential{user: user})
   end
 end
