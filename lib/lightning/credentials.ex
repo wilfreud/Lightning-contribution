@@ -127,7 +127,13 @@ defmodule Lightning.Credentials do
     )
   end
 
-  def transfer_ownership(%Credential{} = credential, %User{} = user) do
-    update_credential(credential, %Credential{user: user})
+  def can_credential_be_shared_to_user(credential_id, user_id) do
+    from(pu in Lightning.Projects.ProjectUser,
+      join: pc in Lightning.Projects.ProjectCredential,
+      on: pu.project_id == pc.project_id,
+      where: pu.user_id == ^user_id and pc.credential_id == ^credential_id,
+      select: count(pu.id)
+    )
+    |> Repo.one()
   end
 end
