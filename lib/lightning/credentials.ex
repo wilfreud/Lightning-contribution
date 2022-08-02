@@ -9,7 +9,6 @@ defmodule Lightning.Credentials do
 
   alias Lightning.Credentials.Credential
   alias Lightning.Projects.Project
-  alias Lightning.Accounts.User
 
   @doc """
   Returns the list of credentials.
