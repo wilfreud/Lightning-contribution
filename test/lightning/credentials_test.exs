@@ -2,11 +2,11 @@ defmodule Lightning.CredentialsTest do
   use Lightning.DataCase, async: true
 
   alias Lightning.Credentials
+  import Lightning.CredentialsFixtures
 
-  describe "credentials" do
+  describe "Model interactions" do
     alias Lightning.Credentials.Credential
 
-    import Lightning.CredentialsFixtures
     import Lightning.AccountsFixtures
     import Lightning.ProjectsFixtures
 
@@ -133,6 +133,29 @@ defmodule Lightning.CredentialsTest do
                credential.id,
                user_id_3
              ) == false
+    end
+  end
+
+  describe "get_sensitive_values/1" do
+    test "collects up all values" do
+      credential =
+        credential_fixture(
+          body: %{
+            "loginUrl" => "https://login.salesforce.com",
+            "user" => %{
+              "email" => "demo@openfn.org",
+              "password" => "shhh",
+              "scopes" => ["read/write", "admin"]
+            },
+            "security_token" => nil,
+            "port" => 75
+          }
+        )
+
+      secrets = ["admin", "read/write", "shhh", 75]
+
+      assert Credentials.sensitive_values_for(credential) == secrets
+      assert Credentials.sensitive_values_for(credential.id) == secrets
     end
   end
 end

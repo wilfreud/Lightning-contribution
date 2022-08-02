@@ -8,6 +8,7 @@ defmodule Lightning.Credentials do
   alias Lightning.Repo
 
   alias Lightning.Credentials.Credential
+  alias Lightning.Credentials.SensitiveValues
   alias Lightning.Projects.Project
 
   @doc """
@@ -126,6 +127,7 @@ defmodule Lightning.Credentials do
     )
   end
 
+
   def can_credential_be_shared_to_user(credential_id, user_id) do
     projects_credentials =
       from(pc in Lightning.Projects.ProjectCredential,
@@ -142,5 +144,20 @@ defmodule Lightning.Credentials do
       |> Repo.all()
 
     Enum.sort(projects_credentials) == Enum.sort(projects_users)
+
+  @spec sensitive_values_for(Ecto.UUID.t() | Credential.t() | nil) :: [any()]
+  def sensitive_values_for(id) when is_binary(id) do
+    sensitive_values_for(get_credential!(id))
+  end
+
+  def sensitive_values_for(nil), do: []
+
+  def sensitive_values_for(%Credential{body: body}) do
+    if is_nil(body) do
+      []
+    else
+      SensitiveValues.secret_values(body)
+    end
+    
   end
 end
