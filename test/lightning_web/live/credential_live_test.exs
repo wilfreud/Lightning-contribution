@@ -112,32 +112,52 @@ defmodule LightningWeb.CredentialLiveTest do
              |> render_submit() =~ "some updated body"
     end
 
-    # test "updates credential for transfering", %{conn: conn, credential: credential} do
-    #   {:ok, index_live, _html} =
-    #     live(conn, Routes.credential_index_path(conn, :index))
+    test "transfers a credential to a new owner", %{
+      conn: conn,
+      credential: credential
+    } do
+      {:ok, index_live, _html} =
+        live(conn, Routes.credential_index_path(conn, :index))
 
-    #   {:ok, form_live, _} =
-    #     index_live
-    #     |> element("#credential-#{credential.id} a", "Edit")
-    #     |> render_click()
-    #     |> follow_redirect(
-    #       conn,
-    #       Routes.credential_edit_path(conn, :edit, credential)
-    #     )
+      %{
+        id: user_id_1,
+        first_name: first_name_1,
+        last_name: last_name_1,
+        email: email_1
+      } = Lightning.AccountsFixtures.user_fixture()
 
-    #     # @update_attrs %{
-    #     #   body: "some updated body",
-    #     #   name: "some updated name"
-    #     # }
-    #     # @invalid_attrs %{body: nil, name: nil}
+      %{
+        id: user_id_2,
+        first_name: first_name_2,
+        last_name: last_name_2,
+        email: email_2
+      } = Lightning.AccountsFixtures.user_fixture()
 
-    #   assert form_live
-    #          |> form("#credential-form", credential: %{body: "some body", name: "some name", user_id: "hbjsinokak"})
-    #          |> render_change() =~ "can&#39;t be blank"
+      %{
+        id: user_id_3,
+        first_name: first_name_3,
+        last_name: last_name_3,
+        email: email_3
+      } = Lightning.AccountsFixtures.user_fixture()
 
-    #   # assert form_live
-    #   #        |> form("#credential-form", credential: @update_attrs)
-    #   #        |> render_submit() =~ "some updated body"
-    # end
+      {:ok, %Lightning.Projects.Project{id: project_id}} =
+        Lightning.Projects.create_project(%{
+          name: "some-name",
+          project_users: [%{user_id: user_id_1, user_id: user_id_2}]
+        })
+
+      {:ok, form_live, html} =
+        index_live
+        |> element("#credential-#{credential.id} a", "Edit")
+        |> render_click()
+        |> follow_redirect(
+          conn,
+          Routes.credential_edit_path(conn, :edit, credential)
+        )
+
+      assert html =~ user_id_1
+      assert html =~ user_id_2
+      assert html =~ user_id_3
+    end
   end
 end
