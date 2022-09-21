@@ -85,6 +85,14 @@ defmodule Lightning.Jobs.Job do
     |> validate_format(:name, ~r/^[a-zA-Z0-9_\- ]*$/)
   end
 
+
+  def change_job_credential(job, project_credential) do
+    job
+    |> cast(%{"project_credential_id" => project_credential.id}, [:project_credential_id])
+    |> put_assoc(:project_credential, project_credential)
+  end
+
+
   @spec add_to_workflow(Ecto.Changeset.t()) :: Ecto.Changeset.t()
   @doc """
   When a job is saved (created or updated) its workflow must be set. (All jobs

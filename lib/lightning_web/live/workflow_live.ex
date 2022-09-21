@@ -42,6 +42,7 @@ defmodule LightningWeb.WorkflowLive do
   end
 
   @impl true
+
   def handle_params(params, _url, socket) do
     {:noreply,
      apply_action(
@@ -74,6 +75,24 @@ defmodule LightningWeb.WorkflowLive do
     |> assign(
       active_menu_item: :overview,
       job: job,
+      page_title: socket.assigns.project.name
+    )
+  end
+
+  defp apply_action(socket, :edit_job, %{
+         "job_id" => job_id,
+         "project_credential_id" => project_credential_id
+       }) do
+    job = Lightning.Jobs.get_job!(job_id)
+    project_credential = Lightning.Projects.get_project_credential_by_id(project_credential_id)
+
+
+
+    socket
+    |> assign(
+      active_menu_item: :overview,
+      job: job,
+      project_credential: project_credential,
       page_title: socket.assigns.project.name
     )
   end

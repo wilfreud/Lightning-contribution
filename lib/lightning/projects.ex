@@ -126,6 +126,20 @@ defmodule Lightning.Projects do
   @spec list_project_credentials(project :: Project.t()) :: [
           ProjectCredential.t()
         ]
+  def get_project_credential_by_id(project_credential_id) do
+    Repo.get(ProjectCredential, project_credential_id)
+    |> Repo.preload(:credential)
+  end
+
+
+  def get_project_credential(project_id, credential_id) do
+    from(pc in ProjectCredential,
+      where:
+        pc.credential_id == ^credential_id and
+          pc.project_id == ^project_id)
+    |> Repo.one()
+  end
+
   def list_project_credentials(%Project{} = project) do
     Ecto.assoc(project, :project_credentials)
     |> preload(:credential)
@@ -178,7 +192,7 @@ defmodule Lightning.Projects do
     end
   end
 
-  @spec export_project(:yaml, any) :: {:ok, binary}
+  @spec export_project(:yaml, project_id :: String.t()) :: {:ok, binary}
   @doc """
   Exports a project as yaml.
 

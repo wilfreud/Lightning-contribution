@@ -5,10 +5,10 @@ defmodule LightningWeb.CredentialLive.FormComponent do
   use LightningWeb, :live_component
 
   alias Lightning.Credentials
+
   import Ecto.Changeset, only: [fetch_field!: 2, put_assoc: 3, get_field: 3]
   import LightningWeb.Components.Form
   import LightningWeb.Components.Common
-
   @impl true
   def update(%{credential: credential, projects: projects} = assigns, socket) do
     changeset = Credentials.change_credential(credential)
@@ -335,18 +335,45 @@ defmodule LightningWeb.CredentialLive.FormComponent do
   end
 
   defp save_credential(socket, :new, credential_params) do
+
     user_id = Ecto.Changeset.fetch_field!(socket.assigns.changeset, :user_id)
+    caller_context = socket.assigns.caller_context
 
     credential_params
     # We are adding user_id in credential_params because we don't want to do it in the form
     |> Map.put("user_id", user_id)
     |> Credentials.create_credential()
     |> case do
-      {:ok, _credential} ->
+      {:ok, credential} ->
+
+        # pass back the newly created project_credential_id
+
+        return_to = if caller_context do
+
+          project_id = caller_context["project"]
+          job_id = caller_context["job"]
+
+          project_credential = Lightning.Projects.get_project_credential(project_id, credential.id)
+
+          if return_to do
+            return_to.(extra_params)
+          end
+
+        merge_uri_query(return_to, %{
+              "initial_params" => %{
+              "project_credential_id" => project_credential.id }
+            })
+
+
+          Routes.project_workflow_path(socket, :edit_job, project_id, job_id, %{"project_credential_id" => project_credential.id})
+        else
+          Routes.credential_index_path(socket, :index)
+        end
+
         {:noreply,
          socket
          |> put_flash(:info, "Credential created successfully")
-         |> push_redirect(to: socket.assigns.return_to)}
+         |> push_redirect(to: return_to)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
@@ -362,4 +389,14 @@ defmodule LightningWeb.CredentialLive.FormComponent do
     all_projects
     |> Enum.reject(fn {_, credential_id} -> credential_id in existing_ids end)
   end
+
+  def merge_query(url, query_params) when is_binary(url) do
+        URI.new!(url)
+        |> URI.merge(%URI{
+          query:
+            URI.encode_query(query_params)
+        })
+        |> URI.to_string()
+  end
+
 end

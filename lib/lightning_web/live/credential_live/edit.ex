@@ -31,12 +31,15 @@ defmodule LightningWeb.CredentialLive.Edit do
     )
   end
 
-  defp apply_action(socket, :new, _params) do
+  defp apply_action(socket, :new, params) do
+    # if caller_context is not nil we must redirect to project_workflow_path
+
     socket
     |> assign(:page_title, "New Credential")
     |> assign(
       credential: %Credential{user_id: socket.assigns.current_user.id},
-      projects: list_projects(socket)
+      projects: list_projects(socket),
+      caller_context: params
     )
   end
 
