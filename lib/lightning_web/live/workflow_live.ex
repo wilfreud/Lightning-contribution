@@ -60,29 +60,6 @@ defmodule LightningWeb.WorkflowLive do
     )
   end
 
-  defp apply_action(socket, :new_job, %{"upstream_id" => upstream_id}) do
-    upstream_job = Lightning.Jobs.get_job!(upstream_id)
-
-    job = %Lightning.Jobs.Job{
-      project_id: socket.assigns.project.id,
-      trigger: %Lightning.Jobs.Trigger{
-        type: :on_job_success,
-        upstream_job_id: upstream_job.id
-      }
-    }
-
-    socket
-    |> assign(
-      active_menu_item: :overview,
-      job: job,
-      upstream_job_id: upstream_job.id,
-      initial_params: %{
-        "project_id" => socket.assigns.project.id
-      },
-      page_title: socket.assigns.project.name
-    )
-  end
-
   defp apply_action(socket, :new_job, %{
          "upstream_id" => upstream_id,
          "project_credential_id" => project_credential_id
@@ -111,6 +88,31 @@ defmodule LightningWeb.WorkflowLive do
         "project_id" => socket.assigns.project.id,
         "project_credential_id" => project_credential_id,
         "project_credential" => project_credential
+      },
+      page_title: socket.assigns.project.name
+    )
+  end
+
+  defp apply_action(socket, :new_job, %{"upstream_id" => upstream_id}) do
+    upstream_job = Lightning.Jobs.get_job!(upstream_id)
+
+    IO.inspect(upstream_job, label: "APPLY_ACTION")
+
+    job = %Lightning.Jobs.Job{
+      project_id: socket.assigns.project.id,
+      trigger: %Lightning.Jobs.Trigger{
+        type: :on_job_success,
+        upstream_job_id: upstream_job.id
+      }
+    }
+
+    socket
+    |> assign(
+      active_menu_item: :overview,
+      job: job,
+      upstream_job_id: upstream_job.id,
+      initial_params: %{
+        "project_id" => socket.assigns.project.id
       },
       page_title: socket.assigns.project.name
     )
