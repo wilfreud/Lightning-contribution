@@ -11,45 +11,40 @@ defmodule Lightning.Pipeline do
 
   alias Lightning.Pipeline.Runner
 
-  alias Lightning.{Jobs, Invocation}
-  alias Lightning.Invocation.Event
+  alias Lightning.{Jobs, InvocationService}
+  alias Lightning.Invocation.{Invocation, Factory}
   alias Lightning.Repo
   import Ecto.Query, only: [select: 3]
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"event_id" => id}}) do
-    Invocation.Event
-    |> Repo.get(id)
+  def perform(%Oban.Job{args: %{"invocation_id" => id}}) do
+    InvocationService.get(id)
     |> process()
 
     :ok
   end
 
-  @spec process(Event.t()) :: :ok
-  def process(%Event{} = event) do
-    run = Invocation.get_run!(event)
+  @spec process(Invocation.t()) :: :ok
+  def process(%Invocation{} = invocation) do
+    run = InvocationService.get_run!(invocation)
     result = Runner.start(run)
 
-    jobs = get_jobs_for_result(event.job_id, result)
+    jobs = get_jobs_for_result(run.job_id, result)
 
     if length(jobs) > 0 do
-      next_dataclip_id = get_next_dataclip_id(result, run)
-
       jobs
-      |> Enum.map(fn %{id: job_id, project_id: project_id} ->
-        %{
-          job_id: job_id,
-          type: :flow,
-          dataclip_id: next_dataclip_id,
-          source_id: event.id,
-          project_id: project_id
-        }
+      |> Enum.each(fn job ->
+        invocation =
+          Factory.build(
+            :flow,
+            job,
+            run |> Repo.reload!()
+          )
+          |> Repo.insert!()
+
+        new(%{invocation_id: invocation.id})
+        |> Oban.insert()
       end)
-      |> Enum.map(fn attrs ->
-        {:ok, %{event: event}} = Invocation.create(attrs)
-        new(%{event_id: event.id})
-      end)
-      |> Enum.each(&Oban.insert/1)
     end
 
     :ok

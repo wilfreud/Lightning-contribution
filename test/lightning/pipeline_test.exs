@@ -27,15 +27,19 @@ defmodule Lightning.PipelineTest do
             ).id
         )
 
-      event = event_fixture(job_id: job.id)
-      run_fixture(event_id: event.id)
+      invocation =
+        Lightning.Invocation.Factory.build(:webhook, %{
+          job: job,
+          dataclip: dataclip_fixture()
+        })
+        |> Repo.insert!()
 
-      Pipeline.process(event)
+      Pipeline.process(invocation)
 
-      expected_event =
-        from(e in Lightning.Invocation.Event,
+      expected_run =
+        from(e in Lightning.Invocation.Run,
           where: e.job_id == ^downstream_job_id,
-          preload: [:result_dataclip]
+          preload: :output_dataclip
         )
         |> Repo.one!()
 
@@ -43,7 +47,7 @@ defmodule Lightning.PipelineTest do
                "configuration" => %{"credential" => "body"},
                "data" => %{},
                "error" => error
-             } = expected_event.result_dataclip.body
+             } = expected_run.output_dataclip.body
 
       error = Enum.slice(error, 0..4)
 
@@ -93,15 +97,25 @@ defmodule Lightning.PipelineTest do
           project_credential_id: other_project_credential.id
         )
 
-      event = event_fixture(job_id: job.id)
-      run_fixture(event_id: event.id)
+      invocation =
+        Lightning.Invocation.Factory.build(:webhook, %{
+          job: job,
+          dataclip: dataclip_fixture()
+        })
+        |> Repo.insert!()
 
-      Pipeline.process(event)
+      source_run_id = invocation.run.id
+      # event = event_fixture(job_id: job.id)
+      # run_fixture(event_id: event.id)
 
-      expected_event =
-        from(e in Lightning.Invocation.Event,
-          where: e.job_id == ^downstream_job_id,
-          preload: [:result_dataclip]
+      Pipeline.process(invocation)
+
+      expected_invocation =
+        from(i in Lightning.Invocation.Invocation,
+          join: r in assoc(i, :run),
+          on: r.source_run_id == ^source_run_id,
+          where: i.job_id == ^downstream_job_id,
+          preload: :output_dataclip
         )
         |> Repo.one!()
 
@@ -109,7 +123,7 @@ defmodule Lightning.PipelineTest do
                "configuration" => %{"credential" => "body"},
                "data" => %{},
                "extra" => "data"
-             } == expected_event.result_dataclip.body
+             } == expected_invocation.run.output_dataclip.body
     end
   end
 end

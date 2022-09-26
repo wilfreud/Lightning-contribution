@@ -14,19 +14,24 @@ defmodule LightningWeb.WebhooksController do
         |> json(%{})
 
       job ->
-        {:ok, %{event: event, run: run, dataclip: _dataclip}} =
-          Invocation.create(
-            %{job_id: job.id, project_id: job.project_id, type: :webhook},
-            %{
+        {:ok, %{invocation: invocation, dataclip: _dataclip}} =
+          Ecto.Multi.new()
+          |> Ecto.Multi.insert(
+            :dataclip,
+            Invocation.Dataclip.changeset(%Invocation.Dataclip{}, %{
               type: :http_request,
               body: conn.body_params,
               project_id: job.project_id
-            }
+            })
           )
+          |> Ecto.Multi.insert(:invocation, fn %{dataclip: dataclip} ->
+            Invocation.Factory.build(:webhook, %{job: job, dataclip: dataclip})
+          end)
+          |> Lightning.Repo.transaction()
 
-        resp = %{event_id: event.id, run_id: run.id}
+        resp = %{invocation_id: invocation.id, run_id: invocation.run.id}
 
-        Pipeline.new(%{event_id: event.id})
+        Pipeline.new(%{invocation_id: invocation.id})
         |> Oban.insert()
 
         conn

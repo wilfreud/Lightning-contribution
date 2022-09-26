@@ -15,8 +15,14 @@ defmodule Lightning.Pipeline.StateAssemblerTest do
                "data" => %{"foo" => "bar"}
              }
 
+
       job = job_fixture(credential: nil)
       event = event_fixture(dataclip_id: dataclip.id, job_id: job.id)
+
+      Invocation.Builder.new()
+      |> source_kind(:webhook)
+      |> with_dataclip(dataclip)
+
       run = run_fixture(event_id: event.id)
 
       # When a Job doesn't have a credential

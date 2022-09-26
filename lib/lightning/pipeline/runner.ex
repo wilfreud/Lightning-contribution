@@ -64,14 +64,14 @@ defmodule Lightning.Pipeline.Runner do
   """
   @spec start(run :: Invocation.Run.t(), opts :: []) :: Engine.Result.t()
   def start(%Invocation.Run{} = run, opts \\ []) do
-    run = Lightning.Repo.preload(run, event: [job: :credential])
+    run = Lightning.Repo.preload(run, job: :credential)
 
-    %{body: expression, adaptor: adaptor} = get_job!(run.event.job_id)
+    %{body: expression, adaptor: adaptor} = run.job
 
     {:ok, scrubber} =
       Lightning.Scrubber.start_link(
         samples:
-          Lightning.Credentials.sensitive_values_for(run.event.job.credential)
+          Lightning.Credentials.sensitive_values_for(run.job.credential)
       )
 
     state = Lightning.Pipeline.StateAssembler.assemble(run)

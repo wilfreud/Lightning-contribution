@@ -4,15 +4,25 @@ defmodule Lightning.InvocationFixtures do
   entities via the `Lightning.Invocation` context.
   """
 
+  defp maybe_assign_project(attrs) do
+    Keyword.put_new_lazy(attrs, :project_id, fn ->
+      Lightning.ProjectsFixtures.project_fixture().id
+    end)
+  end
+
+  defp maybe_assign_job(attrs) do
+    Keyword.put_new_lazy(attrs, :job_id, fn ->
+      Lightning.JobsFixtures.job_fixture(project_id: attrs[:project_id]).id
+    end)
+  end
+
   @doc """
   Generate a dataclip.
   """
   def dataclip_fixture(attrs \\ []) when is_list(attrs) do
     {:ok, dataclip} =
       attrs
-      |> Keyword.put_new_lazy(:project_id, fn ->
-        Lightning.ProjectsFixtures.project_fixture().id
-      end)
+      |> maybe_assign_project()
       |> Enum.into(%{
         body: %{},
         type: :http_request
@@ -28,9 +38,8 @@ defmodule Lightning.InvocationFixtures do
   def event_fixture(attrs \\ []) when is_list(attrs) do
     attrs =
       attrs
-      |> Keyword.put_new_lazy(:project_id, fn ->
-        Lightning.ProjectsFixtures.project_fixture().id
-      end)
+      |> maybe_assign_project()
+      |> maybe_assign_job()
 
     {:ok, event} =
       attrs
