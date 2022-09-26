@@ -335,9 +335,7 @@ defmodule LightningWeb.CredentialLive.FormComponent do
   end
 
   defp save_credential(socket, :new, credential_params) do
-
     user_id = Ecto.Changeset.fetch_field!(socket.assigns.changeset, :user_id)
-    caller_context = socket.assigns.caller_context
 
     credential_params
     # We are adding user_id in credential_params because we don't want to do it in the form
@@ -345,30 +343,8 @@ defmodule LightningWeb.CredentialLive.FormComponent do
     |> Credentials.create_credential()
     |> case do
       {:ok, credential} ->
-
-        # pass back the newly created project_credential_id
-
-        return_to = if caller_context do
-
-          project_id = caller_context["project"]
-          job_id = caller_context["job"]
-
-          project_credential = Lightning.Projects.get_project_credential(project_id, credential.id)
-
-          if return_to do
-            return_to.(extra_params)
-          end
-
-        merge_uri_query(return_to, %{
-              "initial_params" => %{
-              "project_credential_id" => project_credential.id }
-            })
-
-
-          Routes.project_workflow_path(socket, :edit_job, project_id, job_id, %{"project_credential_id" => project_credential.id})
-        else
-          Routes.credential_index_path(socket, :index)
-        end
+        return_to = socket.assigns.return_to.(socket, credential)
+        IO.inspect(return_to, label: "SAVE_CREDENTIAL")
 
         {:noreply,
          socket
@@ -389,14 +365,4 @@ defmodule LightningWeb.CredentialLive.FormComponent do
     all_projects
     |> Enum.reject(fn {_, credential_id} -> credential_id in existing_ids end)
   end
-
-  def merge_query(url, query_params) when is_binary(url) do
-        URI.new!(url)
-        |> URI.merge(%URI{
-          query:
-            URI.encode_query(query_params)
-        })
-        |> URI.to_string()
-  end
-
 end

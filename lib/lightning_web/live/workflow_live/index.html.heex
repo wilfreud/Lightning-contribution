@@ -43,6 +43,12 @@
                   @project.id
                 )
               }
+              new_credential_path={
+                Routes.credential_edit_path(@socket, :new, %{
+                  "job" => @selected_job.id,
+                  "project" => @project.id
+                })
+              }
             />
           </div>
         </div>

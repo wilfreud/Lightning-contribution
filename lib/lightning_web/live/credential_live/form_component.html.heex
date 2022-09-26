@@ -71,7 +71,7 @@
         </div>
       </div>
 
-      <%= unless @caller_context["job"] do %>
+      <%= unless @caller_context["project_id"] do %>
         <div class="col-span-3">
           <%= label(f, :project_credentials, "Project Access",
             class: "block text-sm font-medium text-secondary-700"
@@ -129,12 +129,12 @@
           <%= label(f, :project_credentials, "Project Access",
             class: "block text-sm font-medium text-secondary-700"
           ) %>
-          <span><%= @caller_context["job"] %></span>
+          <span><%= @caller_context["name"] %></span>
           <input
             id="credential-form_project_credentials_0_project_id"
             name="credential[project_credentials][0][project_id]"
             type="hidden"
-            value={@caller_context["project"]}
+            value={@caller_context["project_id"]}
           />
         </div>
       <% end %>

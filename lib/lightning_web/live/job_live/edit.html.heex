@@ -9,7 +9,14 @@
       action={@live_action}
       job={@job}
       project={@project}
+      initial_params={@initial_params}
       return_to={Routes.project_job_index_path(@socket, :index, @project.id)}
+      new_credential_path={
+        Routes.credential_edit_path(@socket, :new, %{
+          "job" => @job.id,
+          "project" => @project.id
+        })
+      }
     />
   </Layout.centered>
 </Layout.page_content>

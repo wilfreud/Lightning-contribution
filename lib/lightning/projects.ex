@@ -131,12 +131,12 @@ defmodule Lightning.Projects do
     |> Repo.preload(:credential)
   end
 
-
   def get_project_credential(project_id, credential_id) do
     from(pc in ProjectCredential,
       where:
         pc.credential_id == ^credential_id and
-          pc.project_id == ^project_id)
+          pc.project_id == ^project_id
+    )
     |> Repo.one()
   end
 

@@ -75,6 +75,43 @@ defmodule LightningWeb.WorkflowLive do
     |> assign(
       active_menu_item: :overview,
       job: job,
+      upstream_job_id: upstream_job.id,
+      initial_params: %{
+        "project_id" => socket.assigns.project.id
+      },
+      page_title: socket.assigns.project.name
+    )
+  end
+
+  defp apply_action(socket, :new_job, %{
+         "upstream_id" => upstream_id,
+         "project_credential_id" => project_credential_id
+       }) do
+    upstream_job = Lightning.Jobs.get_job!(upstream_id)
+
+    project_credential =
+      Lightning.Projects.get_project_credential_by_id(project_credential_id)
+
+    job = %Lightning.Jobs.Job{
+      project_id: socket.assigns.project.id,
+      trigger: %Lightning.Jobs.Trigger{
+        type: :on_job_success,
+        upstream_job_id: upstream_job.id
+      }
+    }
+
+    IO.inspect(project_credential, label: "ACTION NEW_JOB")
+
+    socket
+    |> assign(
+      active_menu_item: :overview,
+      job: job,
+      upstream_job_id: upstream_job.id,
+      initial_params: %{
+        "project_id" => socket.assigns.project.id,
+        "project_credential_id" => project_credential_id,
+        "project_credential" => project_credential
+      },
       page_title: socket.assigns.project.name
     )
   end
@@ -84,15 +121,18 @@ defmodule LightningWeb.WorkflowLive do
          "project_credential_id" => project_credential_id
        }) do
     job = Lightning.Jobs.get_job!(job_id)
-    project_credential = Lightning.Projects.get_project_credential_by_id(project_credential_id)
 
-
+    project_credential =
+      Lightning.Projects.get_project_credential_by_id(project_credential_id)
 
     socket
     |> assign(
       active_menu_item: :overview,
       job: job,
-      project_credential: project_credential,
+      initial_params: %{
+        "project_credential_id" => project_credential_id,
+        "project_credential" => project_credential
+      },
       page_title: socket.assigns.project.name
     )
   end
@@ -104,6 +144,7 @@ defmodule LightningWeb.WorkflowLive do
     |> assign(
       active_menu_item: :overview,
       job: job,
+      initial_params: %{},
       page_title: socket.assigns.project.name
     )
   end
@@ -117,6 +158,8 @@ defmodule LightningWeb.WorkflowLive do
 
   @impl true
   def render(assigns) do
+    # assigns = assign_new(assigns, :initial_params, fn -> %{} end)
+
     ~H"""
     <Layout.page_content>
       <:header>
@@ -149,7 +192,14 @@ defmodule LightningWeb.WorkflowLive do
                   id="new-job"
                   job={@job}
                   action={:new}
+                  initial_params={@initial_params}
                   project={@project}
+                  new_credential_path={
+                    Routes.credential_edit_path(@socket, :new, %{
+                      "project" => @project.id,
+                      "upstream_job" => @upstream_job_id
+                    })
+                  }
                   return_to={
                     Routes.project_workflow_path(
                       @socket,
@@ -169,6 +219,13 @@ defmodule LightningWeb.WorkflowLive do
                   job={@job}
                   action={:edit}
                   project={@project}
+                  initial_params={@initial_params}
+                  new_credential_path={
+                    Routes.credential_edit_path(@socket, :new, %{
+                      "job" => @job.id,
+                      "project" => @project.id
+                    })
+                  }
                   return_to={
                     Routes.project_workflow_path(
                       @socket,
