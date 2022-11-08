@@ -161,7 +161,7 @@ defmodule LightningWeb.WorkflowLive do
             <Common.button>
               <div class="h-full">
                 <Heroicons.plus class="h-4 w-4 inline-block" />
-                <span class="inline-block align-middle">New Job</span>
+                <span class="inline-block align-middle">New workflow</span>
               </div>
             </Common.button>
           </.link>

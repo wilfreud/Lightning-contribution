@@ -59,7 +59,7 @@ defmodule LightningWeb.DashboardLive.Index do
               <Common.button>
                 <div class="h-full">
                   <Heroicons.plus solid class="h-4 w-4 inline-block" />
-                  <span class="inline-block align-middle">New Job</span>
+                  <span class="inline-block align-middle">New workflow</span>
                 </div>
               </Common.button>
             </.link>
