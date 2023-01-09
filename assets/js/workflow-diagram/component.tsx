@@ -10,8 +10,11 @@ type UpdateParams = {
 
 export function mount(el: Element | DocumentFragment) {
   const componentRoot = createRoot(el);
-
+  let timeout: string | number | NodeJS.Timeout | undefined;
+  // https://usefulangle.com/post/319/javascript-detect-element-resize
   function update({ onNodeClick, onPaneClick, onJobAddClick }: UpdateParams) {
+    window.addEventListener('resize', Store.handleResize);
+
     return componentRoot.render(
       <WorkflowDiagram
         className="h-8"
@@ -23,6 +26,7 @@ export function mount(el: Element | DocumentFragment) {
   }
 
   function unmount() {
+    window.removeEventListener('resize', Store.handleResize);
     return componentRoot.unmount();
   }
 

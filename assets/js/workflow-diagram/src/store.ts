@@ -7,6 +7,8 @@ import {
   NodeChange,
   OnEdgesChange,
   OnNodesChange,
+  OnSelectionChangeFunc,
+  ReactFlowInstance,
 } from 'react-flow-renderer';
 import { ProjectSpace, Workflow } from './types';
 import create from 'zustand';
@@ -21,6 +23,9 @@ type RFState = {
   projectSpace: ProjectSpace | null;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
+  onSelectedNodeChange: OnSelectionChangeFunc;
+  reactFlowInstance: ReactFlowInstance | null;
+  selectedNode: Node | undefined;
 };
 
 export const useStore = create<RFState>((set, get) => ({
@@ -38,7 +43,17 @@ export const useStore = create<RFState>((set, get) => ({
       edges: applyEdgeChanges(changes, get().edges),
     });
   },
+  onSelectedNodeChange: ({ nodes }: { nodes: Node[] }) => {
+    set({ selectedNode: nodes[0] });
+  },
+  reactFlowInstance: null,
+  selectedNode: undefined,
 }));
+
+// // focus on a given node
+// rf.fitBounds({ x: 40, y: 180, width: 150, height: 40 }, { duration: 1000 });
+// // revert back (can get the values from rf.getViewport())
+// rf.setViewport({ x: 302, y: 209.5, zoom: 2 }, { duration: 1000 });
 
 export async function setProjectSpace(
   projectSpace: ProjectSpace
@@ -66,4 +81,15 @@ export async function addWorkspace(workflow: Workflow) {
   const [nodes, edges] = toFlow(elkNode);
 
   useStore.setState({ nodes, edges, elkNode });
+}
+
+export function setReactFlowInstance(rf: ReactFlowInstance) {
+  useStore.setState({ reactFlowInstance: rf });
+}
+
+let timeout: string | number | NodeJS.Timeout | undefined;
+
+export function handleResize() {
+  clearTimeout(timeout);
+  timeout = setTimeout(() => console.log('browser resized'), 250);
 }

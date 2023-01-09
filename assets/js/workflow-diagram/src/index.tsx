@@ -5,7 +5,11 @@ import TriggerWorkflowNode from './nodes/TriggerWorkflowNode';
 import type { ProjectSpace } from './types';
 
 import EmptyWorkflowNode from './nodes/EmptyWorkflowNode';
-import ReactFlow, { Node, ReactFlowProvider } from 'react-flow-renderer';
+import ReactFlow, {
+  Node,
+  ReactFlowInstance,
+  ReactFlowProvider,
+} from 'react-flow-renderer';
 import './main.css';
 import * as Store from './store';
 import { NodeData } from './layout/types';
@@ -23,7 +27,8 @@ const WorkflowDiagram: React.FC<{
   onNodeClick?: (event: React.MouseEvent, node: Node<NodeData>) => void;
   onPaneClick?: (event: React.MouseEvent) => void;
 }> = ({ projectSpace, onNodeClick, onPaneClick, onJobAddClick }) => {
-  const { nodes, edges, onNodesChange, onEdgesChange } = Store.useStore();
+  const { nodes, edges, onNodesChange, onEdgesChange, onSelectedNodeChange } =
+    Store.useStore();
 
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: Node<NodeData>) => {
@@ -56,6 +61,7 @@ const WorkflowDiagram: React.FC<{
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onSelectionChange={onSelectedNodeChange}
         // onConnect={onConnect}
         // If we let folks drag, we have to save new visual configuration...
         nodesDraggable={false}
@@ -66,6 +72,7 @@ const WorkflowDiagram: React.FC<{
         snapGrid={[10, 10]}
         onNodeClick={handleNodeClick}
         onPaneClick={onPaneClick}
+        onInit={Store.setReactFlowInstance}
         fitView
       />
     </ReactFlowProvider>
