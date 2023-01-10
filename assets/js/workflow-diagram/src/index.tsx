@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import JobNode from './nodes/JobNode';
 import OperationNode from './nodes/OperationNode';
 import TriggerWorkflowNode from './nodes/TriggerWorkflowNode';
@@ -26,7 +26,7 @@ const WorkflowDiagram: React.FC<{
   onJobAddClick?: (node: Node<NodeData>) => void;
   onNodeClick?: (event: React.MouseEvent, node: Node<NodeData>) => void;
   onPaneClick?: (event: React.MouseEvent) => void;
-}> = ({ projectSpace, onNodeClick, onPaneClick, onJobAddClick }) => {
+}> = ({ projectSpace, onNodeClick, onPaneClick, onJobAddClick , ref}) => {
   const { nodes, edges, onNodesChange, onEdgesChange, onSelectedNodeChange } =
     Store.useStore();
 
@@ -45,6 +45,26 @@ const WorkflowDiagram: React.FC<{
     },
     [onJobAddClick, onNodeClick]
   );
+
+  const diagramRef = useRef(null);
+  console.log({ diagramRef, ref });
+
+  useEffect(() => {
+    console.log(diagramRef.current);
+  }, [diagramRef]);
+
+  // useEffect(() => {
+  //     console.log({ diagramRef });
+  //     console.log({ ref });
+
+  //     // const resizeOb = new ResizeObserver(function (_entries) {
+  //     //   Store.fitView()
+  //     // });
+  //     // resizeOb.observe(ref);
+  //     // return () => {
+  //     //   resizeOb.unobserve(ref);
+  //     // };
+  // }, [ref, diagramRef.current]);
 
   useEffect(() => {
     if (projectSpace) {

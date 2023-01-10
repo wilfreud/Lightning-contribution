@@ -87,9 +87,24 @@ export function setReactFlowInstance(rf: ReactFlowInstance) {
   useStore.setState({ reactFlowInstance: rf });
 }
 
-let timeout: string | number | NodeJS.Timeout | undefined;
+function debounce(fun, t): void {
+  let timeout: string | number | NodeJS.Timeout | undefined;
+  clearTimeout(timeout);
+  timeout = setTimeout(fun, t);
+}
+
+export const fitView = debounce(() => {
+  let reactFlowInstance = useStore.getState().reactFlowInstance;
+
+  if (reactFlowInstance) {
+    reactFlowInstance.fitView({ duration: 1000 });
+  }
+}, 250);
 
 export function handleResize() {
   clearTimeout(timeout);
-  timeout = setTimeout(() => console.log('browser resized'), 250);
+  timeout = setTimeout(() => {
+    console.log('browser resized');
+    doFitView();
+  }, 250);
 }
