@@ -11,7 +11,7 @@ defmodule LightningWeb.RunLive.Index do
   alias Lightning.RunSearchForm
   alias Lightning.RunSearchForm.MultiSelectOption
 
-  on_mount {LightningWeb.Hooks, :project_scope}
+  on_mount({LightningWeb.Hooks, :project_scope})
 
   @impl true
   def mount(_params, _session, socket) do
@@ -25,7 +25,12 @@ defmodule LightningWeb.RunLive.Index do
 
     searchfors = [
       %MultiSelectOption{id: :body, label: "Input body", selected: true},
-      %MultiSelectOption{id: :log, label: "Logs", selected: true}
+      %MultiSelectOption{id: :log, label: "Logs", selected: true},
+      %MultiSelectOption{
+        id: :log,
+        label: "Only Search Runs in Last Attempt",
+        selected: true
+      }
     ]
 
     WorkOrderService.subscribe(socket.assigns.project.id)
