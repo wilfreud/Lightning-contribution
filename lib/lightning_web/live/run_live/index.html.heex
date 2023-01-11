@@ -43,17 +43,20 @@
           phx-submit="validate"
         >
           <div>
-            <div class="font-semibold mt-4">Search</div>
-            <div class="text-xs mb-2">
-              A search here will return all workorders that contain attempts with runs whose logs/inputs contain the search string.
-              <b>N.B.</b>
-              that <em>all runs and attempts for a matching workorder</em>
-              (even those that don't match your search) will be returned, but that those with a match will be highlighted with the mathcing snippet for inspection.
+            <div class="font-semibold mt-4">
+              Search associated runs
+              <Icon.info class="h-5 w-5 mb-2 inline-block" />
             </div>
-            <div class="text-xs my-2">
-              <b>
-                We've got to show these results "in context".  How do we indicate that run 7 actually contains the log, while run 6 and 8 don't but are merely there for context?
-              </b>
+            <div class="text-xs mb-2">
+              <b>N.B.:</b>
+              a search here returns all <b>workorders</b>
+              that <em>contain</em>
+              runs with matching logs or inputs. Once a workorder is expanded,
+              you can still see the runs that took place before or after the
+              matching run itself. (I.e., right now you get the full workorder
+              context; soon we'll introduce the ability to pinpoint just a
+              single run <em>before</em>
+              viewing it in context of its attempt and workorder.)
             </div>
             <div class="w-full flex items-center">
               <%= text_input(f, :search_term,
@@ -85,7 +88,7 @@
               Filter workorder by date received
             </div>
             <div class="text-xs mb-2">
-              This shows workorders recevied between X and Y.
+              <code>wo.inserted_at &geq; "after" and &lt; "before"</code>
             </div>
             <div class="flex justify-between">
               <div>
@@ -107,7 +110,7 @@
               Filter workorder by last activity date
             </div>
             <div class="text-xs mb-2">
-              This shows workorders where last run finished at &geq; "after" and &leq; "before".
+              <code>last_run_finished_at &geq; "after" and &lt; "before"</code>
             </div>
             <div class="flex justify-between">
               <div>

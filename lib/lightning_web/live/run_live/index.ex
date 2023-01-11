@@ -25,12 +25,7 @@ defmodule LightningWeb.RunLive.Index do
 
     searchfors = [
       %MultiSelectOption{id: :body, label: "Input body", selected: true},
-      %MultiSelectOption{id: :log, label: "Logs", selected: true},
-      %MultiSelectOption{
-        id: :log,
-        label: "Only Search Runs in Last Attempt",
-        selected: true
-      }
+      %MultiSelectOption{id: :log, label: "Logs", selected: true}
     ]
 
     WorkOrderService.subscribe(socket.assigns.project.id)
