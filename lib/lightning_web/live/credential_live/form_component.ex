@@ -5,7 +5,8 @@ defmodule LightningWeb.CredentialLive.FormComponent do
   use LightningWeb, :live_component
 
   alias Lightning.Credentials
-  import Ecto.Changeset, only: [fetch_field!: 2, put_assoc: 3, get_field: 3]
+  alias LightningWeb.CredentialLive.{SchemaFormComponents}
+  import Ecto.Changeset, only: [fetch_field!: 2, put_assoc: 3]
   import LightningWeb.Components.Form
   import LightningWeb.Components.Common
 
@@ -23,11 +24,12 @@ defmodule LightningWeb.CredentialLive.FormComponent do
         name = p |> Path.basename() |> String.replace(".json", "")
         {name, name}
       end)
+      |> Enum.concat([{"Raw", "raw"}, {"OAuth2", "oauth2"}])
 
     {:ok,
      socket
      |> assign(
-       schemas_options: [{"Raw", "raw"} | schemas_options],
+       schemas_options: schemas_options,
        allow_credential_transfer: allow_credential_transfer
      )}
   end
@@ -63,7 +65,6 @@ defmodule LightningWeb.CredentialLive.FormComponent do
        )
      )
      |> assign_params_changes()
-     |> assign_valid()
      |> assign_new(:show_project_credentials, fn -> true end)}
   end
 
@@ -73,66 +74,6 @@ defmodule LightningWeb.CredentialLive.FormComponent do
     File.read!("#{schemas_path}/#{schema_name}.json")
     |> Jason.decode!()
     |> Credentials.Schema.new(schema_name)
-  end
-
-  def schema_input(%Credentials.Schema{} = schema, changeset, field) do
-    properties =
-      schema.root.schema
-      |> Map.get("properties")
-      |> Map.get(field |> to_string())
-
-    text = properties |> Map.get("title")
-
-    type =
-      case properties do
-        %{"format" => "uri"} -> :url_input
-        %{"type" => "string", "writeOnly" => true} -> :password_input
-        %{"type" => "string"} -> :text_input
-        %{"type" => "integer"} -> :text_input
-        %{"type" => "boolean"} -> :text_input
-        %{"anyOf" => [%{"type" => "string"}, %{"type" => "null"}]} -> :text_input
-      end
-
-    value = changeset |> get_field(field, nil)
-
-    [
-      label(:body, field, text,
-        class: "block text-sm font-medium text-secondary-700"
-      ),
-      apply(Phoenix.HTML.Form, type, [
-        :body,
-        field,
-        [
-          value: value || "",
-          class: ~w(mt-1 focus:ring-primary-500 focus:border-primary-500 block
-               w-full shadow-sm sm:text-sm border-secondary-300 rounded-md)
-        ]
-      ]),
-      Enum.map(
-        Keyword.get_values(changeset.errors, field) |> Enum.slice(0..0),
-        fn error ->
-          content_tag(:span, translate_error(error),
-            phx_feedback_for: input_id(:body, field),
-            class: "block w-full"
-          )
-        end
-      )
-    ]
-  end
-
-  defp assign_valid(socket) do
-    socket
-    |> assign(
-      valid:
-        case socket.assigns do
-          %{changeset: changeset, schema_changeset: schema_changeset}
-          when not is_nil(schema_changeset) ->
-            changeset.valid? && schema_changeset.valid?
-
-          %{changeset: changeset} ->
-            changeset.valid?
-        end
-    )
   end
 
   defp assign_params_changes(socket, params \\ %{}) do
@@ -152,6 +93,9 @@ defmodule LightningWeb.CredentialLive.FormComponent do
       "raw" ->
         socket |> assign(schema: nil, schema_changeset: nil)
 
+      "oauth2" ->
+        socket |> assign(schema: nil, schema_changeset: nil)
+
       schema_type ->
         schema = get_schema(schema_type)
         schema_changeset = create_schema_changeset(schema, params)
@@ -161,6 +105,13 @@ defmodule LightningWeb.CredentialLive.FormComponent do
             socket.assigns.credential,
             merge_schema_body(params["credential"], schema_changeset)
           )
+
+        changeset =
+          unless schema_changeset.valid? do
+            changeset |> Ecto.Changeset.add_error(:body, "invalid")
+          else
+            changeset
+          end
 
         socket
         |> assign(
@@ -194,8 +145,7 @@ defmodule LightningWeb.CredentialLive.FormComponent do
   def handle_event("validate", params, socket) do
     {:noreply,
      socket
-     |> assign_params_changes(params)
-     |> assign_valid()}
+     |> assign_params_changes(params)}
   end
 
   @impl true

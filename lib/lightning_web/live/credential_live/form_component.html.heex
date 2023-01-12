@@ -42,12 +42,19 @@
                   class:
                     "rounded-md w-full font-mono bg-slate-800 text-slate-100"
                 ) %>
+              <% "oauth2" -> %>
+                <.live_component
+                  module={LightningWeb.CredentialLive.Oauth2FormComponent}
+                  id="oauth2-form-component"
+                />
               <% s when byte_size(s) > 0 -> %>
-                <%= for {field, _type} <- @schema.types do %>
-                  <%= schema_input(@schema, @schema_changeset, field) %>
-                <% end %>
+                <SchemaFormComponents.schema_inputs
+                  schema={@schema}
+                  schema_changeset={@schema_changeset}
+                />
               <% _ -> %>
                 <p>Select a credential type</p>
+                <%= hidden_input(f, :body) %>
             <% end %>
           </div>
         </div>
