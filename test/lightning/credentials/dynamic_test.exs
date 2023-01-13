@@ -2,58 +2,83 @@ defmodule Lightning.Credentials.DynamicTest do
   use Lightning.DataCase, async: true
 
   # alias Lightning.Credentials.Schema
-  defmodule Sub do
+  defmodule Credentials.OAuth2 do
     use Ecto.Schema
     import Ecto.Changeset
 
+    @primary_key false
     embedded_schema do
-      field :nested, :string
+      field :client_id, :string
+      field :client_secret, :string
+
+      field :user_info_url, :string
+      field :token_url, :string
+      field :provider_name, :string
+      field :scope, :string
     end
 
     def changeset(schema, attrs) do
-      schema |> cast(attrs, [:nested])
+      schema
+      |> cast(attrs, [
+        :client_id,
+        :client_secret,
+        :user_info_url,
+        :token_url,
+        :provider_name,
+        :scope
+      ])
+      |> validate_required([:client_id, :client_secret])
     end
   end
 
-  defmodule Dynamic do
+  defmodule CredentialSchema do
     use Ecto.Schema
     import Ecto.Changeset
 
     embedded_schema do
       field :name, :string
       field :production, :boolean
-      embeds_one :body, Sub
+      field :body, :map
     end
 
-    def changeset(d, attrs) do
-      d |> cast(attrs, [:foo, :bar]) |> cast_embed(:body)
-    end
+    defp get_mod_opts(mod) when is_atom(mod), do: {mod, :changeset, []}
+    defp get_mod_opts({mod, fun, opts}), do: {mod, fun, opts}
 
-    def changeset_two(d, attrs) do
+    @doc """
+    Create an extended changeset.
+
+    Usage:
+
+        changeset(credential, %{}, using: Mod)
+
+    `Mod` in this context is an embeddedable schema.
+    The `:using` key can also be set to an MFA for use with the `:with` option
+    used by `cast_embed`. See: https://hexdocs.pm/ecto/Ecto.Changeset.html#cast_embed/3
+    """
+    def changeset(schema, attrs, using: mod_opts) do
       # %{name: "foo", production: false, body: %OAuth2{...}}
       # {d,
-      #  Dynamic.__schema__(:fields)
-      #  |> Enum.map(fn f -> {f, Dynamic.__schema__(:type, f)} end)
+      #  CredentialSchema.__schema__(:fields)
+      #  |> Enum.map(fn f -> {f, CredentialSchema.__schema__(:type, f)} end)
       #  |> Map.new()}
-      {d,
+      {mod, fun, opts} = get_mod_opts(mod_opts)
+
+      {schema,
        %{
          name: :string,
          production: :boolean,
          body:
            {:embed,
-            %Ecto.Embedded{
+            Ecto.Embedded.init(
               cardinality: :one,
+              related: mod,
+              owner: __MODULE__,
               field: :body,
-              owner: Lightning.Credentials.DynamicTest.Dynamic,
-              related: Lightning.Credentials.DynamicTest.Sub,
-              on_cast: nil,
-              on_replace: :raise,
-              unique: true,
-              ordered: true
-            }}
+              on_replace: :delete
+            )}
        }}
       |> cast(attrs, [:name, :production])
-      |> cast_embed(:body)
+      |> cast_embed(:body, with: {mod, fun, opts})
     end
 
     # [id: :binary_id, foo: :string, bar: :string]
@@ -62,14 +87,23 @@ defmodule Lightning.Credentials.DynamicTest do
   end
 
   test "" do
-    Dynamic.__schema__(:fields)
-    |> Enum.map(fn f -> {f, Dynamic.__schema__(:type, f)} end)
+    CredentialSchema.__schema__(:fields)
+    |> Enum.map(fn f -> {f, CredentialSchema.__schema__(:type, f)} end)
     |> Map.new()
-
-    Dynamic.changeset_two(%Dynamic{}, %{
-      "name" => "1",
-      "body" => %{"nested" => "foo"}
-    })
     |> IO.inspect()
+
+    cred =
+      CredentialSchema.changeset(
+        %CredentialSchema{},
+        %{
+          "name" => "1",
+          "body" => %{"nested" => "foo"}
+        },
+        using: {Credentials.OAuth2, :changeset, []}
+      )
+      |> IO.inspect()
+
+    %CredentialSchema{name: "foo"} |> IO.inspect()
+    cred |> Ecto.Changeset.apply_changes() |> IO.inspect()
   end
 end
