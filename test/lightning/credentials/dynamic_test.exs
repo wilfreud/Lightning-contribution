@@ -51,7 +51,7 @@ defmodule Lightning.Credentials.DynamicTest do
 
         changeset(credential, %{}, using: Mod)
 
-    `Mod` in this context is an embeddedable schema.
+    `Mod` in this context is an embeddable schema.
     The `:using` key can also be set to an MFA for use with the `:with` option
     used by `cast_embed`. See: https://hexdocs.pm/ecto/Ecto.Changeset.html#cast_embed/3
     """
@@ -63,7 +63,13 @@ defmodule Lightning.Credentials.DynamicTest do
       #  |> Map.new()}
       {mod, fun, opts} = get_mod_opts(mod_opts)
 
-      {schema,
+      build_data_types(schema, mod)
+      |> cast(attrs, [:name, :production])
+      |> cast_embed(:body, with: {mod, fun, opts})
+    end
+
+    defp build_data_types(data, related) do
+      {data,
        %{
          name: :string,
          production: :boolean,
@@ -71,14 +77,12 @@ defmodule Lightning.Credentials.DynamicTest do
            {:embed,
             Ecto.Embedded.init(
               cardinality: :one,
-              related: mod,
+              related: related,
               owner: __MODULE__,
               field: :body,
               on_replace: :delete
             )}
        }}
-      |> cast(attrs, [:name, :production])
-      |> cast_embed(:body, with: {mod, fun, opts})
     end
 
     # [id: :binary_id, foo: :string, bar: :string]
