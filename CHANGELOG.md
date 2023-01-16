@@ -23,6 +23,7 @@ and this project adheres to
 - Allow any user to delete a credential that they own
 - Create any credential through a form except for OAuth
 - Refit all diagram nodes on browser and container resize
+- Users can set up realtime alerts for a project
 
 ### Changed
 
