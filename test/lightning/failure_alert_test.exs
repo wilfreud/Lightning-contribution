@@ -22,7 +22,7 @@ defmodule Lightning.FailureAlertTest do
 
       job =
         workflow_job_fixture(
-          workflow_name: "my-very-specific-workflow",
+          workflow_name: "specific-workflow",
           project_id: project.id,
           body: ~s[fn(state => { throw new Error("I'm supposed to fail.") })]
         )
@@ -99,63 +99,47 @@ defmodule Lightning.FailureAlertTest do
       }
     end
 
-    test "failing workflow sends email even another workflow hits rate limit within the same time scale",
+    test "failing workflow sends failure email to user having failure_alert to true",
          %{project: project, attempt_run: attempt_run, work_order: work_order} do
       # 1/3 within 1mn
       Pipeline.process(attempt_run)
+      # 2/3 within 1mn
+      Pipeline.process(attempt_run)
+      # 3/3 within 1mn
+      Pipeline.process(attempt_run)
+      # rate limit reached -> won't send email
+      Pipeline.process(attempt_run)
+
+      Oban.drain_queue(Oban, queue: :workflow_failures)
 
       assert_email_sent(fn email ->
         assert email.subject ==
-                 "1th failure for workflow my-very-specific-workflow"
+                 "1th failure for workflow specific-workflow"
 
-        assert email.html_body =~ "my-very-specific-workflow"
+        assert email.html_body =~ "specific-workflow"
         assert email.html_body =~ work_order.id
 
         assert email.html_body =~
                  "/projects/#{project.id}/runs/#{attempt_run.run_id}"
       end)
 
-      # 2/3 within 1mn
-      Pipeline.process(attempt_run)
-
-      assert_email_sent(
-        subject: "2th failure for workflow my-very-specific-workflow"
-      )
-
-      # 3/3 within 1mn
-      Pipeline.process(attempt_run)
-
-      assert_email_sent(
-        subject: "3th failure for workflow my-very-specific-workflow"
-      )
-
-      # rate limit reached -> won't send email
-      Pipeline.process(attempt_run)
-
-      refute_email_sent(
-        subject: "4th failure for workflow my-very-specific-workflow"
-      )
+      assert_email_sent(subject: "2th failure for workflow specific-workflow")
+      assert_email_sent(subject: "3th failure for workflow specific-workflow")
+      refute_email_sent(subject: "4th failure for workflow specific-workflow")
     end
 
-    test "failing workflow sends failure email to user having failure_alert to true",
+    test "failing workflow sends email even if another workflow hits rate limit within the same time scale",
          %{attempt_run: attempt_run, attempt_run2: attempt_run2} do
       Pipeline.process(attempt_run)
       Pipeline.process(attempt_run)
       Pipeline.process(attempt_run)
       Pipeline.process(attempt_run2)
 
-      assert_email_sent(
-        subject: "1th failure for workflow my-very-specific-workflow"
-      )
+      Oban.drain_queue(Oban, queue: :workflow_failures)
 
-      assert_email_sent(
-        subject: "2th failure for workflow my-very-specific-workflow"
-      )
-
-      assert_email_sent(
-        subject: "3th failure for workflow my-very-specific-workflow"
-      )
-
+      assert_email_sent(subject: "1th failure for workflow specific-workflow")
+      assert_email_sent(subject: "2th failure for workflow specific-workflow")
+      assert_email_sent(subject: "3th failure for workflow specific-workflow")
       assert_email_sent(subject: "1th failure for workflow another-workflow")
     end
 
@@ -169,7 +153,7 @@ defmodule Lightning.FailureAlertTest do
 
       job =
         workflow_job_fixture(
-          workflow_name: "my-very-specific-workflow",
+          workflow_name: "specific-workflow",
           project_id: project.id,
           body: ~s[fn(state => { throw new Error("I'm supposed to fail.") })]
         )
@@ -204,9 +188,34 @@ defmodule Lightning.FailureAlertTest do
 
       Pipeline.process(attempt_run)
 
-      refute_email_sent(
-        subject: "1th failure for workflow my-very-specific-workflow"
-      )
+      refute_email_sent(subject: "1th failure for workflow specific-workflow")
+    end
+
+    test "not delivered email does not change the remaining count",
+         %{attempt_run: attempt_run, work_order: work_order} do
+      [time_scale: time_scale, rate_limit: rate_limit] =
+        Application.fetch_env!(:lightning, Lightning.FailureAlerter)
+
+      remaining = rate_limit - 1
+
+      Pipeline.process(attempt_run)
+
+      assert_email_sent(subject: "1th failure for workflow specific-workflow")
+
+      {1, ^remaining, _, _, _} =
+        ExRated.inspect_bucket(work_order.workflow_id, time_scale, rate_limit)
+
+      stub(Lightning.FailureEmail, :deliver_failure_email, fn _, _ ->
+        {:error}
+      end)
+
+      Pipeline.process(attempt_run)
+
+      refute_email_sent(subject: "1th failure for workflow specific-workflow")
+
+      # nothing changed
+      {1, ^remaining, _, _, _} =
+        ExRated.inspect_bucket(work_order.workflow_id, time_scale, rate_limit)
     end
   end
 end
