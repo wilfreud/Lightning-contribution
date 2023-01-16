@@ -33,6 +33,10 @@ config :lightning, Lightning.Mailer, adapter: Swoosh.Adapters.Test
 config :lightning, Lightning.AdaptorRegistry,
   use_cache: "test/fixtures/adaptor_registry_cache.json"
 
+config :lightning, Lightning.FailureAlerter,
+  time_scale: 60_000,
+  rate_limit: 3
+
 config :lightning,
   schemas_path: "test/fixtures/schemas"
 
