@@ -134,13 +134,13 @@ defmodule LightningWeb.CredentialLiveTest do
       |> element("button", "Add")
       |> render_click()
 
-      refute new_live |> has_element?("#credential-form_body")
+      refute new_live |> has_element?("textarea#credential-form_body")
 
       new_live
       |> form("#credential-form", credential: %{schema: "raw"})
       |> render_change()
 
-      assert new_live |> has_element?("#credential-form_body")
+      assert new_live |> has_element?("textarea#credential-form_body")
 
       assert new_live
              |> form("#credential-form", credential: %{name: ""})
@@ -183,7 +183,7 @@ defmodule LightningWeb.CredentialLiveTest do
       |> form("#credential-form", credential: %{schema: "dhis2"})
       |> render_change()
 
-      refute new_live |> has_element?("#credential-form_body")
+      refute new_live |> has_element?("textarea#credential-form_body")
 
       assert new_live
              |> form("#credential-form", body: %{username: ""})

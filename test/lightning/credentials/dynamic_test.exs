@@ -31,7 +31,7 @@ defmodule Lightning.Credentials.DynamicTest do
     end
   end
 
-  defmodule CredentialSchema do
+  defmodule CredentialForm do
     use Ecto.Schema
     import Ecto.Changeset
 
@@ -58,8 +58,8 @@ defmodule Lightning.Credentials.DynamicTest do
     def changeset(schema, attrs, using: mod_opts) do
       # %{name: "foo", production: false, body: %OAuth2{...}}
       # {d,
-      #  CredentialSchema.__schema__(:fields)
-      #  |> Enum.map(fn f -> {f, CredentialSchema.__schema__(:type, f)} end)
+      #  CredentialForm.__schema__(:fields)
+      #  |> Enum.map(fn f -> {f, CredentialForm.__schema__(:type, f)} end)
       #  |> Map.new()}
       {mod, fun, opts} = get_mod_opts(mod_opts)
 
@@ -91,14 +91,14 @@ defmodule Lightning.Credentials.DynamicTest do
   end
 
   test "" do
-    CredentialSchema.__schema__(:fields)
-    |> Enum.map(fn f -> {f, CredentialSchema.__schema__(:type, f)} end)
-    |> Map.new()
-    |> IO.inspect()
+    # CredentialForm.__schema__(:fields)
+    # |> Enum.map(fn f -> {f, CredentialForm.__schema__(:type, f)} end)
+    # |> Map.new()
+    # |> IO.inspect()
 
     cred =
-      CredentialSchema.changeset(
-        %CredentialSchema{},
+      CredentialForm.changeset(
+        %CredentialForm{},
         %{
           "name" => "1",
           "body" => %{"nested" => "foo"}
@@ -107,7 +107,48 @@ defmodule Lightning.Credentials.DynamicTest do
       )
       |> IO.inspect()
 
-    %CredentialSchema{name: "foo"} |> IO.inspect()
+    %CredentialForm{name: "foo"} |> IO.inspect()
     cred |> Ecto.Changeset.apply_changes() |> IO.inspect()
+
+    schema_map =
+      """
+      {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "The username used to log in"
+          },
+          "password": {
+            "type": "string",
+            "description": "The password used to log in",
+            "writeOnly": true
+          },
+          "hostUrl": {
+            "type": "string",
+            "description": "The password used to log in",
+            "format": "uri"
+          },
+          "number": {
+            "type": "integer",
+            "description": "A number to log in"
+          }
+        },
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["hostUrl", "password", "username", "number"]
+      }
+      """
+      |> Jason.decode!()
+
+    schema = Lightning.Credentials.Schema.new(schema_map)
+
+    CredentialForm.changeset(
+      %{},
+      %{"name" => "1", "body" => %{"nested" => "foo", "hostUrl" => "nope"}},
+      using:
+        {Lightning.Credentials.SchemaDocument, :changeset, [[schema: schema]]}
+    )
+    |> IO.inspect()
   end
 end

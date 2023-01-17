@@ -5,7 +5,6 @@ defmodule Lightning.Credentials.Schema do
   """
 
   alias ExJsonSchema.Validator
-  alias Ecto.Changeset
 
   @type t :: %__MODULE__{
           name: String.t() | nil,
@@ -27,42 +26,15 @@ defmodule Lightning.Credentials.Schema do
   end
 
   @spec validate(changeset :: Ecto.Changeset.t(), schema :: __MODULE__.t()) ::
-          Ecto.Changeset.t()
+          :ok | {:error, [any()]}
   def validate(changeset, %__MODULE__{} = schema) do
-    validation =
-      Validator.validate(
-        schema.root,
-        Changeset.apply_changes(changeset) |> stringify_keys(),
-        error_formatter: false
-      )
-
-    case validation do
-      :ok ->
-        changeset
-
-      {:error, errors} when is_list(errors) ->
-        Enum.reduce(errors, changeset, &error_to_changeset/2)
-    end
-  end
-
-  defp error_to_changeset(%{path: path, error: error}, changeset) do
-    field = String.slice(path, 2..-1) |> String.to_existing_atom()
-
-    case error do
-      %{expected: "uri"} ->
-        Changeset.add_error(changeset, field, "expected to be a URI")
-
-      %{missing: fields} ->
-        Enum.reduce(fields, changeset, fn field, changeset ->
-          Changeset.add_error(changeset, field, "can't be blank")
-        end)
-
-      %{actual: 0, expected: _} ->
-        Changeset.add_error(changeset, field, "can't be blank")
-
-      %{actual: "null", expected: expected} when is_list(expected) ->
-        Changeset.add_error(changeset, field, "can't be blank")
-    end
+    Validator.validate(
+      schema.root,
+      Ecto.Changeset.apply_changes(changeset)
+      |> Map.from_struct()
+      |> stringify_keys(),
+      error_formatter: false
+    )
   end
 
   defp get_types(root) do
