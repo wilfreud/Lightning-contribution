@@ -30,9 +30,7 @@ defmodule Lightning.Credentials.Schema do
   def validate(changeset, %__MODULE__{} = schema) do
     Validator.validate(
       schema.root,
-      Ecto.Changeset.apply_changes(changeset)
-      |> Map.from_struct()
-      |> stringify_keys(),
+      Ecto.Changeset.apply_changes(changeset) |> ensure_string_map(),
       error_formatter: false
     )
   end
@@ -46,6 +44,14 @@ defmodule Lightning.Credentials.Schema do
     end)
     |> Enum.reverse()
     |> Map.new()
+  end
+
+  defp ensure_string_map(%{__struct__: _} = data) do
+    Map.from_struct(data) |> ensure_string_map()
+  end
+
+  defp ensure_string_map(data) do
+    stringify_keys(data)
   end
 
   defp stringify_keys(data) when is_map(data) do

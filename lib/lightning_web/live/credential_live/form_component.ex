@@ -73,7 +73,6 @@ defmodule LightningWeb.CredentialLive.FormComponent do
 
     File.read!("#{schemas_path}/#{schema_name}.json")
     |> Jason.decode!()
-    |> Credentials.Schema.new(schema_name)
   end
 
   defp assign_params_changes(socket, params \\ %{}) do
@@ -98,7 +97,19 @@ defmodule LightningWeb.CredentialLive.FormComponent do
 
       schema_type ->
         schema = get_schema(schema_type)
-        schema_changeset = create_schema_changeset(schema, params)
+
+        # For schemas we should be using Changesets at all!
+        # we know enough about how to make this data work with a form.
+        # Since we can't embed these schemas (with encryption without some
+        # awkwardness), lets make this flat inside the form component.
+        # Then extract it into a regular module.
+        # Then for bonus points we switch between dedicated live_components
+        # that send_update the results up...
+        schema_changeset =
+          Credentials.SchemaCopy.new(
+            schema,
+            params |> Map.get("body", socket.assigns.credential.body || %{})
+          )
 
         changeset =
           create_changeset(
@@ -125,14 +136,7 @@ defmodule LightningWeb.CredentialLive.FormComponent do
   defp merge_schema_body(nil, _schema_changeset), do: %{}
 
   defp merge_schema_body(params, schema_changeset) do
-    schema_body = Ecto.Changeset.apply_changes(schema_changeset)
-    Map.put(params, "body", schema_body)
-  end
-
-  defp create_schema_changeset(schema, params) do
-    Credentials.SchemaDocument.changeset(%{}, params |> Map.get("body", %{}),
-      schema: schema
-    )
+    Map.put(params, "body", schema_changeset.data)
   end
 
   defp create_changeset(credential, params) do

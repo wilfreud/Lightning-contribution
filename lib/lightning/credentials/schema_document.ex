@@ -10,8 +10,7 @@ defmodule Lightning.Credentials.SchemaDocument do
   import Ecto.Changeset
 
   @primary_key false
-  embedded_schema do
-  end
+  embedded_schema do end
 
   def changeset(document, attrs, schema: schema = %Schema{}) do
     changeset =

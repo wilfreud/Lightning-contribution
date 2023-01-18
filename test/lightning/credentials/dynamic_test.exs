@@ -105,10 +105,6 @@ defmodule Lightning.Credentials.DynamicTest do
         },
         using: {Credentials.OAuth2, :changeset, []}
       )
-      |> IO.inspect()
-
-    %CredentialForm{name: "foo"} |> IO.inspect()
-    cred |> Ecto.Changeset.apply_changes() |> IO.inspect()
 
     schema_map =
       """

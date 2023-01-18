@@ -1,6 +1,5 @@
 defmodule LightningWeb.CredentialLive.SchemaFormComponents do
   use LightningWeb, :component
-  import Ecto.Changeset, only: [get_field: 3]
   alias Lightning.Credentials.Schema
 
   attr :schema, :map, required: true
@@ -8,13 +7,13 @@ defmodule LightningWeb.CredentialLive.SchemaFormComponents do
 
   def schema_inputs(assigns) do
     ~H"""
-    <%= for {field, _type} <- @schema.types do %>
-      <%= schema_input(@schema, @schema_changeset, field) %>
+    <%= for {field, _type} <- @schema_changeset.types do %>
+      <%= schema_input(@schema_changeset, field) %>
     <% end %>
     """
   end
 
-  def schema_input(%Schema{} = schema, changeset, field) do
+  def schema_input(schema, field) do
     properties =
       schema.root.schema
       |> Map.get("properties")
@@ -32,7 +31,7 @@ defmodule LightningWeb.CredentialLive.SchemaFormComponents do
         %{"anyOf" => [%{"type" => "string"}, %{"type" => "null"}]} -> :text_input
       end
 
-    value = changeset |> get_field(field, nil)
+    value = schema.data |> Map.get(field, nil)
 
     [
       label(:body, field, text,
@@ -48,7 +47,14 @@ defmodule LightningWeb.CredentialLive.SchemaFormComponents do
         ]
       ]),
       Enum.map(
-        Keyword.get_values(changeset.errors, field) |> Enum.slice(0..0),
+        Enum.reduce(schema.errors, [], fn {key, value}, acc ->
+          if field == key do
+            [value | acc]
+          else
+            acc
+          end
+        end)
+        |> Enum.slice(0..0),
         fn error ->
           content_tag(:span, translate_error(error),
             phx_feedback_for: input_id(:body, field),
