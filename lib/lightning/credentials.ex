@@ -226,7 +226,7 @@ defmodule Lightning.Credentials do
       %Ecto.Changeset{data: %Credential{}}
 
   """
-  def change_credential(%Credential{} = credential, attrs \\ %{}) do
+  def change_credential(credential, attrs \\ %{}) do
     Credential.changeset(
       credential,
       attrs |> coerce_json_field("body")

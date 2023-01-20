@@ -1,4 +1,4 @@
-<div id={"credential-#{@id}"}>
+<div id={@id}>
   <.form
     :let={f}
     for={@changeset}
@@ -45,6 +45,8 @@
               <% "oauth2" -> %>
                 <.live_component
                   module={LightningWeb.CredentialLive.Oauth2FormComponent}
+                  body={@body}
+                  on_update={fn {body, valid} -> update_body(@id, {body, valid}) end}
                   id="oauth2-form-component"
                 />
               <% s when byte_size(s) > 0 -> %>

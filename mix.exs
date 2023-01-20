@@ -80,7 +80,7 @@ defmodule Lightning.MixProject do
       {:phoenix_html, "~> 3.2"},
       {:phoenix_live_dashboard, "~> 0.7.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_view, "~> 0.18.0"},
+      {:phoenix_live_view, "~> 0.18.10"},
       {:plug_cowboy, "~> 2.5"},
       {:postgrex, ">= 0.0.0"},
       {:rambo, "~> 0.3.4"},

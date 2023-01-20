@@ -10,6 +10,11 @@ defmodule LightningWeb.CredentialLive.FormComponent do
   import LightningWeb.Components.Form
   import LightningWeb.Components.Common
 
+  def update_body(id, {body, valid}) do
+    IO.inspect({id, {body, valid}}, label: "update_body")
+    send_update(__MODULE__, id: id, body: body, valid: valid)
+  end
+
   @impl true
   def mount(socket) do
     {:ok, schemas_path} = Application.fetch_env(:lightning, :schemas_path)
@@ -42,11 +47,17 @@ defmodule LightningWeb.CredentialLive.FormComponent do
 
     {:ok,
      socket
-     |> assign(assigns)
      |> assign(
+       action: assigns[:action],
        all_projects: all_projects,
-       changeset: nil,
        available_projects: filter_available_projects(changeset, all_projects),
+       buttons: assigns[:buttons],
+       changeset: changeset,
+       body: credential.body || %{},
+       credential: credential,
+       id: assigns[:id],
+       return_to: assigns[:return_to],
+       schema: nil,
        selected_project: "",
        users:
          Enum.map(Lightning.Accounts.list_users(), fn user ->
@@ -55,17 +66,36 @@ defmodule LightningWeb.CredentialLive.FormComponent do
              value: user.id
            ]
          end),
-       schema: nil
-     )
-     |> assign(
-       :cols_class,
-       if(assigns[:show_project_credentials],
-         do: "grid-cols-6",
-         else: "grid-cols-3"
-       )
+       cols_class:
+         if(assigns[:show_project_credentials],
+           do: "grid-cols-6",
+           else: "grid-cols-3"
+         )
      )
      |> assign_params_changes()
      |> assign_new(:show_project_credentials, fn -> true end)}
+  end
+
+  def update(%{body: body, valid: valid}, socket) do
+    IO.inspect("update for on_change")
+
+    changeset =
+      {valid, socket.assigns.changeset |> Ecto.Changeset.put_change(:body, body)}
+      |> case do
+        {false, changeset} ->
+          # might need to check if there is already an error on body
+          changeset |> Ecto.Changeset.add_error(:body, "invalid")
+
+        {_, changeset} ->
+          changeset
+      end
+
+    {:ok,
+     socket
+     |> assign(
+       body: body,
+       changeset: changeset |> IO.inspect(label: "changeset after update")
+     )}
   end
 
   defp get_schema(schema_name) do
@@ -79,9 +109,10 @@ defmodule LightningWeb.CredentialLive.FormComponent do
     socket =
       assign(socket,
         changeset:
-          create_changeset(
+          build_changeset(
             socket.assigns.credential,
-            params |> Map.get("credential", %{})
+            params |> Map.get("credential", %{}),
+            socket.assigns.body
           )
       )
 
@@ -112,9 +143,10 @@ defmodule LightningWeb.CredentialLive.FormComponent do
           )
 
         changeset =
-          create_changeset(
+          build_changeset(
             socket.assigns.credential,
-            merge_schema_body(params["credential"], schema_changeset)
+            params["credential"],
+            schema_changeset.data
           )
 
         changeset =
@@ -139,11 +171,24 @@ defmodule LightningWeb.CredentialLive.FormComponent do
     Map.put(params, "body", schema_changeset.data)
   end
 
-  defp create_changeset(credential, params) do
+  defp build_changeset(credential, params, nil) do
     credential
     |> Credentials.change_credential(params)
     |> Map.put(:action, :validate)
   end
+
+  defp build_changeset(credential, params, body) do
+    Ecto.Changeset.change(credential)
+    |> Ecto.Changeset.put_change(:body, body)
+    |> Credentials.change_credential(params)
+    |> Map.put(:action, :validate)
+  end
+
+  # defp create_changeset(credential, params) do
+  #   credential
+  #   |> Credentials.change_credential(params)
+  #   |> Map.put(:action, :validate)
+  # end
 
   @impl true
   def handle_event("validate", params, socket) do

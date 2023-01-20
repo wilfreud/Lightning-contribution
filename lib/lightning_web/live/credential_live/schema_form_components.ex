@@ -1,6 +1,5 @@
 defmodule LightningWeb.CredentialLive.SchemaFormComponents do
   use LightningWeb, :component
-  alias Lightning.Credentials.Schema
 
   attr :schema, :map, required: true
   attr :schema_changeset, :map, required: true
