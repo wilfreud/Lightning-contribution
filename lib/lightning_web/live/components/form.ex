@@ -273,7 +273,7 @@ defmodule LightningWeb.Components.Form do
 
   def check_box(assigns) do
     checkbox_classes = ~w[
-      "focus:ring-primary-500
+      focus:ring-primary-500
       h-4
       w-4
       text-primary-600

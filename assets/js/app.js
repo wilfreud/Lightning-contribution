@@ -69,6 +69,49 @@ Hooks.AutoResize = {
   },
 };
 
+Hooks.IsolatedForm = {
+  mounted() {
+    console.log('mounted');
+    this.listeners = [
+      this.addCaptureListener('input', event => {
+        console.log(event);
+        // %{"_target" => ["body", "apiVersion"], "body" => %{"apiVersion" => "a", "hostUrl" => "", "password" => "[FILTERED]", "username" => ""}, "credential" => %{"name" => "", "production" => "false", "schema" => "dhis2"}}
+        // formData = serializeForm(inputEl.form, {_target: opts._target})
+
+        let params = {}
+
+        for (const input of this.el.querySelectorAll('input')) {
+          
+          params[input.name, input.value];
+        }
+        this.pushEventTo(this.el, 'validate', params.toString());
+      }),
+      this.addCaptureListener('change', event => {
+        console.log(event);
+      }),
+    ];
+  },
+  destroyed() {
+    this.listeners.forEach(remove => remove());
+  },
+
+  addCaptureListener(type, handler) {
+    const listener = this.el.addEventListener(
+      type,
+      event => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        handler(event);
+      },
+      true
+    );
+
+    return () => {
+      this.el.removeEventListener(type, listener);
+    };
+  },
+};
+
 // @ts-ignore
 let csrfToken = document
   .querySelector("meta[name='csrf-token']")

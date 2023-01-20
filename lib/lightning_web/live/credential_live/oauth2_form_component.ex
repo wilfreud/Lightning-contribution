@@ -30,6 +30,8 @@ defmodule LightningWeb.CredentialLive.Oauth2FormComponent do
     def changeset(schema, attrs) do
       schema
       |> cast(attrs, @fields)
+      |> validate_required([:provider_name])
+    |> validate_format(:provider_name, ~r/^[a-z\-\d]+$/)
     end
   end
 
@@ -41,19 +43,42 @@ defmodule LightningWeb.CredentialLive.Oauth2FormComponent do
   attr :id, :string, required: true
 
   def render(assigns) do
-    # We need some kind of "Fake form for"
-    # Check out what `form_for` emits, it's some kind of
-    # Phoenix.HTML.Form struct.
-    # Instead of a form tag, it should be a div with a
-    # phx hook to trigger changes.
+    assigns = assign(assigns, form: Phoenix.HTML.FormData.to_form(assigns.changeset |> IO.inspect(), as: "body"))
+
     ~H"""
-    <div id={@id}>
-      <%= Phoenix.HTML.Form.text_input(
-        :body,
-        :provider_name,
-        value: Ecto.Changeset.fetch_field!(@changeset, :provider_name) |> IO.inspect() || "",
-        phx_change: "validate2"
-      ) %>
+    <div>
+      <Form.text_field form={@form} id={:provider_name} label="Provider Name" />
+    </div>
+    """
+  end
+
+    # # We need some kind of "Fake form for"
+    # # Check out what `form_for` emits, it's some kind of
+    # # Phoenix.HTML.Form struct.
+    # # Instead of a form tag, it should be a div with a
+    # # phx hook to trigger changes.
+    # ~H"""
+    # <div>
+    #   <.isolated_form id={@id} :let={f} for={@changeset} phx-target={@myself} phx-change="validate">
+    #     <Form.text_field form={f} id={:provider_name} label="Provider Name" />
+    #   </.isolated_form>
+    # </div>
+    # """
+  attr :for, :any, required: true, doc: "The form source data."
+  attr :id, :string
+  attr :rest, :global
+
+  def isolated_form(assigns) do
+    form_for =
+      assigns[:for] || raise ArgumentError, "missing :for assign to form"
+
+    form = Phoenix.HTML.FormData.to_form(form_for, [])
+
+    assigns = assigns |> assign(form: form)
+
+    ~H"""
+    <div phx-hook="IsolatedForm" id={@id} {@rest}>
+      <%= render_slot(@inner_block, @form) %>
     </div>
     """
   end
@@ -61,22 +86,22 @@ defmodule LightningWeb.CredentialLive.Oauth2FormComponent do
   @impl true
   def update(%{body: body, id: id, on_update: on_update}, socket) do
     IO.inspect(body, label: "body on oauth2form update")
-    schema = OAuth2Schema.new(body)
-    changeset = OAuth2Schema.changeset(schema, body)
+    changeset = OAuth2Schema.changeset(%OAuth2Schema{}, body) |> Map.put(:action, :validate)
 
     {:ok,
      socket
      |> assign(
        changeset: changeset,
-       schema: schema,
        id: id,
        on_update: on_update
      )}
   end
 
+
   @impl true
-  def handle_event("validate2", params, socket) do
-    changeset = OAuth2Schema.changeset(socket.assigns.schema, params["body"])
+  def handle_event("validate", params, socket) do
+    IO.inspect(params)
+    changeset = OAuth2Schema.changeset(%OAuth2Schema{}, params["body"])
     IO.inspect(changeset, label: "validate")
 
     socket.assigns.on_update.(

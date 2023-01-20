@@ -194,7 +194,8 @@ defmodule LightningWeb.CredentialLive.FormComponent do
   def handle_event("validate", params, socket) do
     {:noreply,
      socket
-     |> assign_params_changes(params)}
+     |> assign_params_changes(params)
+    |> assign(body: params |> Map.get("body", %{}))}
   end
 
   @impl true

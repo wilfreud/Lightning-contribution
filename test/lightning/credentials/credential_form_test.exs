@@ -57,8 +57,6 @@ defmodule Lightning.Credentials.CredentialFormTest do
 
     refute changeset.valid?
 
-
-
     # Lightning.Credentials.Credential.changeset(
     #   %Lightning.Credentials.Credential{},
     #   %{}
