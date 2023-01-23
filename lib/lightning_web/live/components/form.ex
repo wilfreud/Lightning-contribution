@@ -224,7 +224,6 @@ defmodule LightningWeb.Components.Form do
     error_classes = ~w[
       block
       w-full
-      rounded-md
       text-sm
       text-secondary-700
     ]

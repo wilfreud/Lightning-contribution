@@ -1,13 +1,22 @@
 defmodule LightningWeb.CredentialLive.SchemaFormComponents do
   use LightningWeb, :component
 
-  attr :schema, :map, required: true
-  attr :schema_changeset, :map, required: true
+  attr :changeset, :map, required: true
+
+  def inputs_for(assigns) do
+    ~H"""
+    <%= for {field, _type} <- @changeset.types do %>
+      <%= schema_input(@changeset, field) %>
+    <% end %>
+    """
+  end
+
+  attr :body_changeset, :map, required: true
 
   def schema_inputs(assigns) do
     ~H"""
-    <%= for {field, _type} <- @schema_changeset.types do %>
-      <%= schema_input(@schema_changeset, field) %>
+    <%= for {field, _type} <- @body_changeset.types do %>
+      <%= schema_input(@body_changeset, field) %>
     <% end %>
     """
   end
@@ -20,7 +29,35 @@ defmodule LightningWeb.CredentialLive.SchemaFormComponents do
 
     text = properties |> Map.get("title")
 
-    type =
+    value = schema.data |> Map.get(field, nil)
+
+    [
+      label(:"credential[body]", field, text,
+        class: "block text-sm font-medium text-secondary-700"
+      ),
+      apply(Phoenix.HTML.Form, get_input_type(properties), [
+        :"credential[body]",
+        field,
+        [
+          value: value || "",
+          class: ~w(mt-1 focus:ring-primary-500 focus:border-primary-500 block
+               w-full shadow-sm sm:text-sm border-secondary-300 rounded-md)
+        ]
+      ]),
+      first_error(
+        schema,
+        field,
+        fn error ->
+          content_tag(:span, translate_error(error),
+            phx_feedback_for: input_name(:"credential[body]", field),
+            class: "block w-full text-sm text-secondary-700"
+          )
+        end
+      )
+    ]
+  end
+
+  defp get_input_type(properties) do
       case properties do
         %{"format" => "uri"} -> :url_input
         %{"type" => "string", "writeOnly" => true} -> :password_input
@@ -29,38 +66,19 @@ defmodule LightningWeb.CredentialLive.SchemaFormComponents do
         %{"type" => "boolean"} -> :text_input
         %{"anyOf" => [%{"type" => "string"}, %{"type" => "null"}]} -> :text_input
       end
+  end
 
-    value = schema.data |> Map.get(field, nil)
-
-    [
-      label(:body, field, text,
-        class: "block text-sm font-medium text-secondary-700"
-      ),
-      apply(Phoenix.HTML.Form, type, [
-        :body,
-        field,
-        [
-          value: value || "",
-          class: ~w(mt-1 focus:ring-primary-500 focus:border-primary-500 block
-               w-full shadow-sm sm:text-sm border-secondary-300 rounded-md)
-        ]
-      ]),
-      Enum.map(
-        Enum.reduce(schema.errors, [], fn {key, value}, acc ->
-          if field == key do
-            [value | acc]
-          else
-            acc
-          end
-        end)
-        |> Enum.slice(0..0),
-        fn error ->
-          content_tag(:span, translate_error(error),
-            phx_feedback_for: input_id(:body, field),
-            class: "block w-full"
-          )
+  defp first_error(schema, field, fun) do
+    Enum.map(
+      Enum.reduce(schema.errors |> IO.inspect(), [], fn {key, value}, acc ->
+        if field == key do
+          [value | acc]
+        else
+          acc
         end
-      )
-    ]
+      end)
+      |> Enum.slice(0..0),
+      fun
+    )
   end
 end
