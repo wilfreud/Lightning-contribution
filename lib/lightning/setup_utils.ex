@@ -13,6 +13,7 @@ defmodule Lightning.SetupUtils do
           users: [atom | %{:id => any, optional(any) => any}, ...],
           workflows: [atom | %{:id => any, optional(any) => any}, ...]
         }
+
   @doc """
   Creates initial data and returns the created records.
   """
@@ -53,7 +54,11 @@ defmodule Lightning.SetupUtils do
         password: "welcome123"
       })
 
-    %{project: demo_project, workflow: openhie_workflow, jobs: openhie_jobs} =
+    %{
+      project: demo_project,
+      workflows: [openhie_workflow, update_case_workflow],
+      jobs: openhie_jobs
+    } =
       create_demo_project([
         %{user_id: admin.id, role: :admin},
         %{user_id: editor.id, role: :editor},
@@ -68,7 +73,7 @@ defmodule Lightning.SetupUtils do
     %{
       users: [super_user, admin, editor, viewer],
       projects: [demo_project, dhis2_project],
-      workflows: [openhie_workflow, dhis2_workflow],
+      workflows: [openhie_workflow, update_case_workflow, dhis2_workflow],
       jobs: openhie_jobs ++ dhis2_jobs
     }
   end
@@ -170,11 +175,86 @@ defmodule Lightning.SetupUtils do
         project_users: project_users
       })
 
-      {:ok, update_case_workflow} =
+    {:ok, update_case_workflow} =
       Workflows.create_workflow(%{
         name: "Update Case Workflow",
         project_id: demo_project.id
       })
+
+    {:ok, get_cases} =
+      Jobs.create_job(%{
+        name: "Get cases from Mock API",
+        body: "get('https://6397307986d04c76338dce41.mockapi.io/api/v1/cases');",
+        adaptor: "@openfn/language-http@latest",
+        enabled: true,
+        trigger: %{type: "cron", cron_expression: "0 8 * * *"},
+        workflow_id: update_case_workflow.id
+      })
+
+    project_user = List.first(project_users)
+
+    {:ok, credential} =
+      Credentials.create_credential(%{
+        # add credentials here BUT store values in the env file
+        body: %{
+          username: "admin",
+          password: "district",
+          hostUrl: "https://play.dhis2.org/dev"
+        },
+        name: "OpenFn Primero demo",
+        user_id: project_user.user_id,
+        schema: "primero",
+        project_credentials: [
+          %{demo_project: demo_project.id}
+        ]
+      })
+
+    {:ok, upsert_to_primero} =
+      Jobs.create_job(%{
+        name: "Upsert to Primero",
+        body: "// Ensure that cases are in an array
+fn(state => {
+  const { data } = state;
+  const people = [];
+
+  if (Array.isArray(data)) {
+    people = Array.from(data);
+  } else {
+    people.push(data);
+  }
+
+  console.log('Incoming cases:', people);
+
+  return { ...state, people };
+});
+
+// Iterate through cases, upsert to Primero
+each(
+  '$.people[*]',
+  upsertCase({ externalIds: ['record_id'] }, state => {
+    const { data } = state;
+    const primeroCase = {
+      record_id: data.case_id,
+      ethnicity: [data.ethnicity],
+      nationality: [data.nationality],
+      // this is the number of boys and girls in the family
+      boys_and_girls: {
+        boys_333245: primeroCase.boys,
+        girls_895184: primeroCase.girls,
+        total: primeroCase.total,
+      },
+    };
+    console.log('Upserting case to Primero:', primeroCase);
+    return primeroCase;
+  })
+);",
+        adaptor: "@openfn/language-primero@latest",
+        enabled: true,
+        trigger: %{type: "on_job_success", upstream_job_id: get_cases.id},
+        workflow_id: update_case_workflow.id
+      })
+
+    # above is our workflow
 
     {:ok, openhie_workflow} =
       Workflows.create_workflow(%{
@@ -225,10 +305,13 @@ defmodule Lightning.SetupUtils do
         workflow_id: openhie_workflow.id
       })
 
+    # add workflow and jobs here
     %{
       project: demo_project,
-      workflow: openhie_workflow,
+      workflows: [openhie_workflow, update_case_workflow],
       jobs: [
+        get_cases,
+        upsert_to_primero,
         fhir_standard_data,
         send_to_openhim,
         notify_upload_successful,
