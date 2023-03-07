@@ -53,8 +53,8 @@ defmodule Lightning.SetupUtils do
         password: "welcome123"
       })
 
-    %{project: openhie_project, workflow: openhie_workflow, jobs: openhie_jobs} =
-      create_openhie_project([
+    %{project: demo_project, workflow: openhie_workflow, jobs: openhie_jobs} =
+      create_demo_project([
         %{user_id: admin.id, role: :admin},
         %{user_id: editor.id, role: :editor},
         %{user_id: viewer.id, role: :viewer}
@@ -67,7 +67,7 @@ defmodule Lightning.SetupUtils do
 
     %{
       users: [super_user, admin, editor, viewer],
-      projects: [openhie_project, dhis2_project],
+      projects: [demo_project, dhis2_project],
       workflows: [openhie_workflow, dhis2_workflow],
       jobs: openhie_jobs ++ dhis2_jobs
     }
@@ -163,17 +163,23 @@ defmodule Lightning.SetupUtils do
     }
   end
 
-  def create_openhie_project(project_users) do
-    {:ok, openhie_project} =
+  def create_demo_project(project_users) do
+    {:ok, demo_project} =
       Projects.create_project(%{
-        name: "openhie-project",
+        name: "demo-project",
         project_users: project_users
+      })
+
+      {:ok, update_case_workflow} =
+      Workflows.create_workflow(%{
+        name: "Update Case Workflow",
+        project_id: demo_project.id
       })
 
     {:ok, openhie_workflow} =
       Workflows.create_workflow(%{
         name: "OpenHIE Workflow",
-        project_id: openhie_project.id
+        project_id: demo_project.id
       })
 
     {:ok, fhir_standard_data} =
@@ -220,7 +226,7 @@ defmodule Lightning.SetupUtils do
       })
 
     %{
-      project: openhie_project,
+      project: demo_project,
       workflow: openhie_workflow,
       jobs: [
         fhir_standard_data,
