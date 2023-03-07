@@ -193,7 +193,7 @@ defmodule Lightning.SetupUtils do
 
     project_user = List.first(project_users)
 
-    {:ok, credential} =
+    {:ok, primero_credential} =
       Credentials.create_credential(%{
         body:
           %{
@@ -249,7 +249,9 @@ each(
         adaptor: "@openfn/language-primero@latest",
         enabled: true,
         trigger: %{type: "on_job_success", upstream_job_id: get_cases.id},
-        workflow_id: update_case_workflow.id
+        workflow_id: update_case_workflow.id,
+        project_credential_id:
+          List.first(primero_credential.project_credentials).id
       })
 
     {:ok, openhie_workflow} =
