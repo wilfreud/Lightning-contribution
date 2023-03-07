@@ -195,12 +195,10 @@ defmodule Lightning.SetupUtils do
 
     {:ok, credential} =
       Credentials.create_credential(%{
-        # add credentials here BUT store values in the env file
-        body: %{
-          username: "admin",
-          password: "district",
-          hostUrl: "https://play.dhis2.org/dev"
-        },
+        body:
+          %{
+            # add credentials here BUT store values in the env file
+          },
         name: "OpenFn Primero demo",
         user_id: project_user.user_id,
         schema: "primero",
@@ -254,8 +252,6 @@ each(
         workflow_id: update_case_workflow.id
       })
 
-    # above is our workflow
-
     {:ok, openhie_workflow} =
       Workflows.create_workflow(%{
         name: "OpenHIE Workflow",
@@ -305,7 +301,6 @@ each(
         workflow_id: openhie_workflow.id
       })
 
-    # add workflow and jobs here
     %{
       project: demo_project,
       workflows: [openhie_workflow, update_case_workflow],
