@@ -23,6 +23,7 @@
     "elkjs": "^0.8.2",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-postcss": "^0.0.4",
+    "immer": "^10.0.1",
     "jsonpath": "^1.1.1",
     "marked": "^4.2.4",
     "monaco-editor": "^0.34.0",
@@ -31,7 +32,7 @@
     "react-dom": "^18.1.0",
     "react-flow-renderer": "^10.3.16",
     "react-markdown": "^8.0.3",
-    "zustand": "^4.1.0"
+    "zustand": "^4.3.7"
   },
   "devDependencies": {
     "@types/marked": "^4.0.8",
