@@ -503,7 +503,7 @@ defmodule Lightning.ProjectsTest do
     user = insert(:user)
 
     project =
-      build(:project, project_users: [%{user: user}])
+      build(:project, %{name: "Some Project", project_users: [%{user: user}]})
       |> ExMachina.merge_attributes(attrs)
       |> insert()
 
