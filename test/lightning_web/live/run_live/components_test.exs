@@ -12,16 +12,15 @@ defmodule LightningWeb.RunLive.ComponentsTest do
     reason = insert(:reason, type: :webhook)
 
     attempt =
-      build(:attempt,
+      insert(:attempt,
         work_order: build(:workorder, reason: reason),
         runs: [
           build(:run),
-          build(:run, finished_at: Timex.now(), exit_code: 0),
-          build(:run, finished_at: Timex.now())
+          build(:run, finished_at: DateTime.utc_now(), exit_code: 0),
+          build(:run, finished_at: DateTime.utc_now())
         ],
         reason: reason
       )
-      |> insert()
 
     first_run = attempt.runs |> List.first()
     second_run = attempt.runs |> Enum.at(1)
@@ -101,8 +100,8 @@ defmodule LightningWeb.RunLive.ComponentsTest do
         work_order: build(:workorder, reason: reason),
         runs: [
           build(:run),
-          build(:run, finished_at: Timex.now(), exit_code: 0),
-          build(:run, finished_at: Timex.now())
+          build(:run, finished_at: DateTime.utc_now(), exit_code: 0),
+          build(:run, finished_at: DateTime.utc_now())
         ],
         reason: reason
       )
@@ -146,15 +145,19 @@ defmodule LightningWeb.RunLive.ComponentsTest do
       render_component(&Components.log_view/1, log: log_lines)
       |> Floki.parse_fragment!()
 
-    assert html |> Floki.find("div[data-line-number]") |> length() == 2
+    assert html |> Floki.find("div[data-line-number]") |> length() ==
+             length(log_lines)
 
     # Check that the log lines are present.
     # Replace the resulting utf-8 &nbsp; back into a regular space.
-    assert html
-           |> Floki.find("div[data-log-line]")
-           |> Floki.text(sep: "\n")
-           |> String.replace(<<160::utf8>>, " ") ==
-             log_lines |> Enum.join("\n")
+    assert log_lines_from_html(html) == log_lines |> Enum.join("\n")
+  end
+
+  defp log_lines_from_html(html) do
+    html
+    |> Floki.find("div[data-log-line]")
+    |> Floki.text(sep: "\n")
+    |> String.replace(<<160::utf8>>, " ")
   end
 
   describe "run_details component" do
