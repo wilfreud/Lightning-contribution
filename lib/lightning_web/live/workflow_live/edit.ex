@@ -314,7 +314,6 @@ defmodule LightningWeb.WorkflowLive.Edit do
      |> assign(
        active_menu_item: :projects,
        current_url: nil,
-       expanded_job: nil,
        follow_run_id: nil,
        page_title: "",
        selected_edge: nil,
