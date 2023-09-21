@@ -95,6 +95,7 @@ export default {
     this.componentModule = import('./component');
 
     this.workflowStore = createWorkflowStore({}, pendingChange => {
+      console.log('pendingchange', pendingChange);
       this.pendingChanges.push(pendingChange);
 
       this.processPendingChanges();
@@ -183,6 +184,7 @@ export default {
         !this.abortController!.signal.aborted
       ) {
         const pendingChange = this.pendingChanges.shift()!;
+        console.log('pushPendingChange', pendingChange);
 
         // TODO: if this fails or times out, we need to undo the change
         // Immer's patch callback also produces a list of inverse patches.
@@ -214,6 +216,7 @@ export default {
     this.pushEventTo(this.el, 'get-initial-state', {});
   },
   handleWorkflowParams({ workflow_params: payload }) {
+    console.log('payload', payload);
     this.workflowStore.setState(_state => payload);
 
     if (!payload.triggers.length && !payload.jobs.length) {

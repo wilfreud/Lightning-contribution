@@ -68,7 +68,7 @@ export const animate = (
       let animateFrom = from.nodes.find(({ id }) => id === node.id);
       if (!animateFrom || !animateFrom.position) {
         // But if this a new node, animate from its parent (source)
-        const edge = from.edges.find(({ target }) => target === node.id);
+        const edge = from.edges.find(({ source }) => source === node.id);
         animateFrom = from.nodes.find(({ id }) => id === edge!.source);
       }
       return {

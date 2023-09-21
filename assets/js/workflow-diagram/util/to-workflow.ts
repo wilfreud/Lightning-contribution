@@ -31,6 +31,8 @@ const model = (model: Flow.Model) => {
   });
 
   model.edges.forEach(edge => {
+    console.log('edge', edge);
+    console.log('nodes', model.nodes);
     const source = model.nodes.find(({ id }) => id === edge.source);
 
     const wfEdge: Partial<Lightning.Edge> = {
@@ -38,7 +40,8 @@ const model = (model: Flow.Model) => {
       target_job_id: edge.target,
     };
 
-    if (source && source.type === 'trigger') {
+    console.log('source', source);
+    if (!source || (source && source.type === 'trigger')) {
       wfEdge.source_trigger_id = edge.source;
     } else {
       wfEdge.source_job_id = edge.source;

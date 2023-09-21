@@ -60,6 +60,7 @@ export default (
 
   const add = useCallback((parentNode: Flow.Node) => {
     // Generate a placeholder node and edge
+    console.log('parentNode', parentNode);
     const updated = create(parentNode);
     setPlaceholders(updated);
 

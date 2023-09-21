@@ -45,6 +45,7 @@ export interface PendingAction {
 }
 
 function toRFC6902Patch(patch: ImmerPatch): Patch {
+  console.log('toRFC6902Patch', patch);
   const newPatch = {
     path: `/${patch.path.join('/')}`,
     op: patch.value === undefined ? 'remove' : patch.op,
@@ -98,6 +99,7 @@ export const createWorkflowStore = (
       set(state =>
         proposeChanges(state, draft => {
           ['jobs', 'triggers', 'edges'].forEach(k => {
+            console.log('data', data)
             const key = k as keyof WorkflowProps;
             if (data[key]) {
               data[key]!.forEach(item => {

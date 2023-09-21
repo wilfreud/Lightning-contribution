@@ -444,7 +444,8 @@ defmodule LightningWeb.WorkflowLive.Edit do
     {:noreply,
      socket
      |> push_event("current-workflow-params", %{
-       workflow_params: socket.assigns.workflow_params
+       workflow_params:
+         socket.assigns.workflow_params |> IO.inspect(label: "get-initial-state")
      })}
   end
 
@@ -473,6 +474,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
       {:noreply,
        socket
        |> apply_params(next_params)
+       |> assign(:workflow_params, next_params)
        |> push_patches_applied(initial_params)}
     else
       :not_authorized ->
@@ -495,17 +497,19 @@ defmodule LightningWeb.WorkflowLive.Edit do
     %{workflow_params: initial_params, can_edit_job: can_edit_job} =
       socket.assigns
 
+    IO.inspect(initial_params)
+
     if can_edit_job do
       next_params =
         case params do
           %{"workflow" => params} ->
             WorkflowParams.apply_form_params(
-              socket.assigns.workflow_params,
+              initial_params,
               params
             )
 
           %{} ->
-            socket.assigns.workflow_params
+            initial_params
         end
 
       socket = socket |> apply_params(next_params)
@@ -537,6 +541,8 @@ defmodule LightningWeb.WorkflowLive.Edit do
   def handle_event("push-change", %{"patches" => patches}, socket) do
     # Apply the incoming patches to the current workflow params producing a new
     # set of params.
+    IO.inspect(patches, label: "patches")
+
     {:ok, params} =
       WorkflowParams.apply_patches(socket.assigns.workflow_params, patches)
 
@@ -710,7 +716,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
 
     if can_edit_job do
       next_params =
-        WorkflowParams.apply_form_params(socket.assigns.workflow_params, params)
+        WorkflowParams.apply_form_params(initial_params, params)
 
       socket
       |> apply_params(next_params)
@@ -745,6 +751,8 @@ defmodule LightningWeb.WorkflowLive.Edit do
 
   defp apply_params(socket, params) do
     # Build a new changeset from the new params
+    IO.inspect(params, label: "apply_params")
+
     changeset =
       socket.assigns.workflow
       |> Workflow.changeset(
