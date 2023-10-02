@@ -361,26 +361,10 @@ defmodule Lightning.Invocation do
     end
   end
 
-  def filter_run_status_where(statuses) do
-    Enum.reduce(statuses, dynamic(false), fn
-      :pending, query ->
-        dynamic([runs: r], ^query or is_nil(r.exit_code))
-
-      :success, query ->
-        dynamic([runs: r], ^query or r.exit_code == 0)
-
-      :failure, query ->
-        dynamic([runs: r], ^query or r.exit_code == 1)
-
-      :timeout, query ->
-        dynamic([runs: r], ^query or r.exit_code == 2)
-
-      :crash, query ->
-        dynamic([runs: r], ^query or r.exit_code > 2)
-
-      _, query ->
-        # Not a where parameter
-        query
+  def filter_workorder_states_where(states) do
+    Enum.reduce(states, dynamic(false), fn
+      state, query ->
+        dynamic([wo], ^query or wo.state == ^state)
     end)
   end
 
@@ -463,7 +447,7 @@ defmodule Lightning.Invocation do
       on: l.run_id == r.id,
       as: :log_lines,
       where: w.project_id == ^project_id,
-      where: ^filter_run_status_where(search_params.status),
+      where: ^filter_workorder_states_where(search_params.status),
       where: ^filter_workflow_where(search_params.workflow_id),
       where: ^filter_workorder_insert_after_where(search_params.wo_date_after),
       where: ^filter_workorder_insert_before_where(search_params.wo_date_before),

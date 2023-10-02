@@ -231,6 +231,7 @@ defmodule LightningWeb.RunWorkOrderTest do
       Attempt.new(%{
         work_order_id: work_order.id,
         reason_id: reason.id,
+        dataclip_id: dataclip.id,
         runs: [
           %{
             job_id: job_a.id,
@@ -485,6 +486,7 @@ defmodule LightningWeb.RunWorkOrderTest do
       Attempt.new(%{
         work_order_id: work_order.id,
         reason_id: reason.id,
+        dataclip_id: dataclip.id,
         runs: [
           %{
             job_id: job_a.id,
@@ -1004,13 +1006,14 @@ defmodule LightningWeb.RunWorkOrderTest do
         Attempt.new(%{
           work_order_id: work_order.id,
           reason_id: reason.id,
+          dataclip_id: dataclip.id,
           runs: [
             %{
               job_id: job_one.id,
               started_at: expected_d1,
               finished_at: expected_d1 |> Timex.shift(minutes: 2),
               exit_code: 0,
-              input_dataclip_id: dataclip.id
+              dataclip_id: dataclip.id
             }
           ]
         })
@@ -1998,6 +2001,7 @@ defmodule LightningWeb.RunWorkOrderTest do
           Attempt.new(%{
             work_order_id: work_order.id,
             reason_id: work_order.reason_id,
+            dataclip_id: dataclip.id,
             runs: runs
           })
           |> Lightning.Repo.insert!()

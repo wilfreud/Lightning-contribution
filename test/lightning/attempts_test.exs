@@ -1,8 +1,8 @@
 defmodule Lightning.AttemptsTest do
-  alias Lightning.WorkOrders
   use Lightning.DataCase, async: true
   import Lightning.Factories
 
+  alias Lightning.WorkOrders
   alias Lightning.Attempts
 
   describe "enqueue/1" do
