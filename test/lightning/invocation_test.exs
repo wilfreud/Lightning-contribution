@@ -730,16 +730,25 @@ defmodule Lightning.InvocationTest do
     test "Filtering by status :failure exit_code = 1" do
       project = insert(:project)
 
-      workflow_map = build_workflows(project, ["workflow1", "workflow2"])
+      dataclip = insert(:dataclip)
+      %{triggers: [trigger], jobs: [job]} = workflow = insert(:simple_workflow)
 
-      scenario = [
-        workflow1: [
-          [:success, :success, :success, :failure],
-          [:success, :success, :failure, :success]
-        ]
-      ]
+      %{attempts: [attempt]} =
+        work_order_for(trigger, workflow: workflow, dataclip: dataclip)
+        |> insert()
 
-      [%{id: id}] = apply_scenario(project, workflow_map, scenario)
+
+
+      # workflow_map = build_workflows(project, ["workflow1", "workflow2"])
+
+      # scenario = [
+      #   workflow1: [
+      #     [:success, :success, :success, :failure],
+      #     [:success, :success, :failure, :success]
+      #   ]
+      # ]
+
+      # [%{id: id}] = apply_scenario(project, workflow_map, scenario)
 
       assert [%{id: ^id}] =
                actual_filter_by_status(project, %{"failure" => true})
@@ -1113,6 +1122,12 @@ defmodule Lightning.InvocationTest do
 
     dataclip = insert(:dataclip, project: project)
 
+    %{triggers: [trigger]} = workflow = insert(:simple_workflow)
+
+    %{attempts: [attempt]} =
+      work_order_for(trigger, workflow: workflow, dataclip: dataclip)
+      |> insert()
+
     scenario
     |> Enum.reverse()
     |> Enum.with_index()
@@ -1130,7 +1145,7 @@ defmodule Lightning.InvocationTest do
       |> Enum.each(fn {run_results, attempt_index} ->
         coeff = coeff * (attempt_index + 1)
 
-        runs =
+        _runs =
           run_results
           |> Enum.with_index()
           |> Enum.map(fn {exit_result, job_index} ->
@@ -1162,12 +1177,18 @@ defmodule Lightning.InvocationTest do
 
         reason = insert(:reason, type: :webhook, dataclip: dataclip)
 
-        Lightning.Attempt.new(%{
-          work_order_id: wo.id,
-          reason_id: reason.id,
-          runs: runs
-        })
-        |> Repo.insert()
+        insert(:attempt,
+          work_order: wo,
+          reason: reason,
+          dataclip: dataclip
+        )
+
+        # Lightning.Attempt.new(%{
+        #   work_order_id: wo.id,
+        #   reason_id: reason.id,
+        #   runs: runs
+        # })
+        # |> Repo.insert()
       end)
 
       %{id: wo.id}

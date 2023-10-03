@@ -73,7 +73,7 @@ defmodule Lightning.WorkOrders do
           Ecto.Changeset.t(WorkOrder.t())
   def build_for(%Trigger{} = trigger, attrs) do
     %WorkOrder{}
-    |> change()
+    |> change(attrs[:state])
     |> put_assoc(:workflow, attrs[:workflow])
     |> put_assoc(:trigger, trigger)
     |> put_assoc(:dataclip, attrs[:dataclip])
