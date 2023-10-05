@@ -83,7 +83,6 @@ defmodule LightningWeb.RunLive.WorkOrderComponent do
     {:noreply, assign(socket, :entry_selected, !socket.assigns[:entry_selected])}
   end
 
-  @impl true
   def preload([%{event: :selection_toggled}] = assigns) do
     assigns
   end

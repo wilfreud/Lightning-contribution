@@ -121,17 +121,22 @@ defmodule LightningWeb.RunLive.Index do
     socket
     |> assign(
       selected_work_orders: [],
-      page:
-        Invocation.search_workorders(
-          socket.assigns.project,
-          filters,
-          params
-        ),
       filters_changeset:
         params
         |> Map.get("filters", init_filters())
         |> filters_changeset()
     )
+    |> assign_async(:page, fn ->
+      {:ok,
+       %{
+         page:
+           Invocation.search_workorders(
+             socket.assigns.project,
+             filters,
+             params
+           )
+       }}
+    end)
   end
 
   def checked(changeset, id) do
@@ -316,33 +321,33 @@ defmodule LightningWeb.RunLive.Index do
     |> WorkOrderService.retry_attempt_runs(socket.assigns.current_user)
   end
 
-  defp all_selected?(work_orders, entries) do
-    Enum.count(work_orders) == Enum.count(entries)
-  end
+  # defp all_selected?(work_orders, entries) do
+  #   Enum.count(work_orders) == Enum.count(entries)
+  # end
 
-  defp partially_selected?(work_orders, entries) do
-    entries != [] && !none_selected?(work_orders) &&
-      !all_selected?(work_orders, entries)
-  end
+  # defp partially_selected?(work_orders, entries) do
+  #   entries != [] && !none_selected?(work_orders) &&
+  #     !all_selected?(work_orders, entries)
+  # end
 
   defp workorders_ids(selected_orders) do
     Enum.map(selected_orders, fn workorder -> workorder.id end)
   end
 
-  defp none_selected?(selected_orders) do
-    selected_orders == []
-  end
+  # defp none_selected?(selected_orders) do
+  #   selected_orders == []
+  # end
 
-  defp selected_workflow_count(selected_orders) do
-    selected_orders
-    |> Enum.map(fn workorder -> workorder.workflow_id end)
-    |> Enum.uniq()
-    |> Enum.count()
-  end
+  # defp selected_workflow_count(selected_orders) do
+  #   selected_orders
+  #   |> Enum.map(fn workorder -> workorder.workflow_id end)
+  #   |> Enum.uniq()
+  #   |> Enum.count()
+  # end
 
-  defp selected_workorder_count(selected_orders) do
-    Enum.count(selected_orders)
-  end
+  # defp selected_workorder_count(selected_orders) do
+  #   Enum.count(selected_orders)
+  # end
 
   defp update_component_selections(entries, selection) do
     for entry <- entries do
