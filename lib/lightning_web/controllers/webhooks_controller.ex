@@ -32,11 +32,14 @@ defmodule LightningWeb.WebhooksController do
                 |> json(%{})
 
               %Workflows.Edge{source_trigger: %Trigger{enabled: false}} ->
-                put_status(conn, :forbidden)
-                |> json(%{
-                  message:
-                    "Unable to process request, trigger is disabled. Enable it on OpenFn to allow requests to this endpoint."
-                })
+                {
+                  put_status(conn, :forbidden)
+                  |> json(%{
+                    message:
+                      "Unable to process request, trigger is disabled. Enable it on OpenFn to allow requests to this endpoint."
+                  }),
+                  %{status: :forbidden}
+                }
 
               edge ->
                 {:ok, %{work_order: work_order, attempt_run: attempt_run}} =

@@ -511,9 +511,6 @@ defmodule LightningWeb.WorkflowLive.Edit do
       socket.assigns
 
     if can_edit_job do
-      # IO.inspect(params, label: :params)
-      # IO.inspect(socket.assigns.workflow_params, label: :workflow_params)
-
       next_params =
         case params do
           %{"workflow" => params} ->
@@ -526,7 +523,6 @@ defmodule LightningWeb.WorkflowLive.Edit do
             socket.assigns.workflow_params
         end
 
-      # IO.inspect(socket.assigns.changeset)
       socket = socket |> apply_params(next_params)
 
       socket =
@@ -788,10 +784,6 @@ defmodule LightningWeb.WorkflowLive.Edit do
         _other -> nil
       end
 
-    # IO.inspect(params, label: "apply_params_params")
-    # IO.inspect(trigger_enabled, label: "apply_params")
-    # IO.inspect(Map.get(socket.assigns.workflow, "triggers"), label: "triggers")
-
     params =
       case Map.get(socket.assigns.workflow, "triggers") do
         nil ->
@@ -852,7 +844,6 @@ defmodule LightningWeb.WorkflowLive.Edit do
   defp assign_changeset(socket, changeset) do
     # Prepare a new set of workflow params from the changeset
     workflow_params = changeset |> WorkflowParams.to_map()
-    IO.inspect(changeset, label: :changeset)
 
     socket
     |> assign(
