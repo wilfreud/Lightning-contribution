@@ -3,7 +3,9 @@ defmodule LightningWeb.WebhooksController do
 
   require OpenTelemetry.Tracer
 
-  alias Lightning.{Workflows, WorkOrderService, Jobs}
+  alias Lightning.Jobs.Trigger
+  alias Lightning.Workflows
+  alias Lightning.WorkOrderService
 
   # this gets hit when someone asks to run a workflow by API
   @spec create(Plug.Conn.t(), %{path: binary()}) :: Plug.Conn.t()
@@ -29,7 +31,7 @@ defmodule LightningWeb.WebhooksController do
                 put_status(conn, :not_found)
                 |> json(%{})
 
-              %Workflows.Edge{target_job: %Jobs.Job{enabled: false}} ->
+              %Workflows.Edge{source_trigger: %Trigger{enabled: false}} ->
                 put_status(conn, :forbidden)
                 |> json(%{
                   message:
