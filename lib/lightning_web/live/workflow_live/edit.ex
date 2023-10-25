@@ -511,6 +511,9 @@ defmodule LightningWeb.WorkflowLive.Edit do
       socket.assigns
 
     if can_edit_job do
+      # IO.inspect(params, label: :params)
+      # IO.inspect(socket.assigns.workflow_params, label: :workflow_params)
+
       next_params =
         case params do
           %{"workflow" => params} ->
@@ -523,6 +526,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
             socket.assigns.workflow_params
         end
 
+      # IO.inspect(socket.assigns.changeset)
       socket = socket |> apply_params(next_params)
 
       socket =
@@ -539,6 +543,14 @@ defmodule LightningWeb.WorkflowLive.Edit do
             |> mark_validated()
             |> put_flash(:error, "Workflow could not be saved")
         end
+        |> assign(
+          form: %{
+            params: %{
+              "trigger_enabled" =>
+                get_in(params, ["workflow", "triggers", 0, "trigger_enabled"])
+            }
+          }
+        )
         |> push_patches_applied(initial_params)
 
       {:noreply, socket}
@@ -770,6 +782,31 @@ defmodule LightningWeb.WorkflowLive.Edit do
   end
 
   defp apply_params(socket, params) do
+    trigger_enabled =
+      case Map.get(params, "triggers") do
+        [%{"trigger_enabled" => trigger_enabled}] -> trigger_enabled
+        _other -> nil
+      end
+
+    # IO.inspect(params, label: "apply_params_params")
+    # IO.inspect(trigger_enabled, label: "apply_params")
+    # IO.inspect(Map.get(socket.assigns.workflow, "triggers"), label: "triggers")
+
+    params =
+      case Map.get(socket.assigns.workflow, "triggers") do
+        nil ->
+          params
+
+        [%{id: workflow_id, trigger_id: trigger_id}] ->
+          Map.put(params, "triggers", [
+            %{
+              "id" => trigger_id,
+              "workflow_id" => workflow_id,
+              "enabled" => trigger_enabled
+            }
+          ])
+      end
+
     # Build a new changeset from the new params
     changeset =
       socket.assigns.workflow
@@ -779,7 +816,8 @@ defmodule LightningWeb.WorkflowLive.Edit do
         |> Map.put("project_id", socket.assigns.project.id)
       )
 
-    socket |> assign_changeset(changeset)
+    socket
+    |> assign_changeset(changeset)
   end
 
   defp apply_selection_params(socket, params) do
@@ -814,6 +852,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
   defp assign_changeset(socket, changeset) do
     # Prepare a new set of workflow params from the changeset
     workflow_params = changeset |> WorkflowParams.to_map()
+    IO.inspect(changeset, label: :changeset)
 
     socket
     |> assign(
