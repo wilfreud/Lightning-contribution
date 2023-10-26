@@ -298,24 +298,10 @@ defmodule LightningWeb.WorkflowLive.Components do
             module={LightningWeb.JobLive.CronSetupComponent}
             disabled={@disabled}
           />
-          <Form.check_box
-            form={@form}
-            field={:trigger_enabled}
-            label="Disable this trigger"
-            checked_value={false}
-            unchecked_value={true}
-            value={@trigger_enabled}
-          />
+          <.trigger_checkbox form={@form} trigger_enabled={@trigger_enabled} />
         <% :webhook -> %>
           <div class="col-span-4 @md:col-span-2 text-right text-">
-            <Form.check_box
-              form={@form}
-              field={:trigger_enabled}
-              label="Disable this trigger"
-              checked_value={false}
-              unchecked_value={true}
-              value={@trigger_enabled}
-            />
+            <.trigger_checkbox form={@form} trigger_enabled={@trigger_enabled} />
             <a
               id="copyWebhookUrl"
               href={@webhook_url}
@@ -329,6 +315,19 @@ defmodule LightningWeb.WorkflowLive.Components do
           </div>
       <% end %>
     </div>
+    """
+  end
+
+  def trigger_checkbox(assigns) do
+    ~H"""
+    <Form.check_box
+      form={@form}
+      field={:trigger_enabled}
+      label="Disable this trigger"
+      checked_value={false}
+      unchecked_value={true}
+      value={@trigger_enabled}
+    />
     """
   end
 
