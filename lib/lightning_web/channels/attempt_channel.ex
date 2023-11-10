@@ -18,6 +18,8 @@ defmodule LightningWeb.AttemptChannel do
         %{"token" => token},
         %{assigns: %{token: worker_token}} = socket
       ) do
+    IO.inspect("attempt:#{id} - join")
+
     with {:ok, _} <- Workers.verify_worker_token(worker_token),
          {:ok, claims} <- Workers.verify_attempt_token(token, %{id: id}),
          attempt when is_map(attempt) <- get_attempt(id) || {:error, :not_found},
@@ -46,12 +48,17 @@ defmodule LightningWeb.AttemptChannel do
 
   @impl true
   def handle_in("fetch:attempt", _, socket) do
+    IO.inspect("fetch:attempt")
+    IO.inspect(socket.assigns.attempt)
     {:reply, {:ok, AttemptJson.render(socket.assigns.attempt)}, socket}
   end
 
   def handle_in("attempt:start", _, socket) do
+    IO.inspect("attempt:start")
+
     socket.assigns.attempt
     |> Attempts.start_attempt()
+    |> IO.inspect()
     |> case do
       {:ok, attempt} ->
         {:reply, {:ok, nil}, socket |> assign(attempt: attempt)}
@@ -62,7 +69,10 @@ defmodule LightningWeb.AttemptChannel do
   end
 
   def handle_in("attempt:complete", payload, socket) do
+    IO.inspect("attempt:complete")
+
     socket.assigns.attempt
+    |> IO.inspect()
     |> Attempts.complete_attempt(map_rtm_reason_state(payload))
     |> case do
       {:ok, attempt} ->
@@ -80,6 +90,8 @@ defmodule LightningWeb.AttemptChannel do
   end
 
   def handle_in("fetch:credential", %{"id" => id}, socket) do
+    IO.inspect("fetch:credential")
+
     Attempts.get_credential(socket.assigns.attempt, id)
     |> Credentials.maybe_refresh_token()
     |> case do
@@ -106,12 +118,16 @@ defmodule LightningWeb.AttemptChannel do
   end
 
   def handle_in("fetch:credential", _, socket) do
+    IO.inspect("fetch:credential blank")
     {:reply, {:error, %{errors: %{id: ["This field can't be blank."]}}}, socket}
   end
 
   def handle_in("fetch:dataclip", _, socket) do
+    IO.inspect("fetch:dataclip")
+
     body =
       Attempts.get_dataclip_body(socket.assigns.attempt)
+      |> IO.inspect(label: :dataclip)
       |> Jason.Fragment.new()
       |> Phoenix.json_library().encode_to_iodata!()
 
@@ -119,6 +135,8 @@ defmodule LightningWeb.AttemptChannel do
   end
 
   def handle_in("run:start", payload, socket) do
+    IO.inspect("run:start")
+
     Map.get(payload, "job_id", :missing_job_id)
     |> case do
       job_id when is_binary(job_id) ->
@@ -144,12 +162,15 @@ defmodule LightningWeb.AttemptChannel do
   end
 
   def handle_in("run:complete", payload, socket) do
+    IO.inspect("run:complete")
+
     %{
       "attempt_id" => socket.assigns.attempt.id,
       "project_id" => socket.assigns.project_id
     }
     |> Enum.into(payload)
     |> Attempts.complete_run()
+    |> IO.inspect()
     |> case do
       {:error, changeset} ->
         {:reply, {:error, LightningWeb.ChangesetJSON.error(changeset)}, socket}

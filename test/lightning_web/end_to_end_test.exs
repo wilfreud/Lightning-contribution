@@ -1,14 +1,16 @@
 # This module will be re-introduced in https://github.com/OpenFn/Lightning/issues/1143
 defmodule LightningWeb.EndToEndTest do
-  use LightningWeb.ConnCase, async: true
-  use Oban.Testing, repo: Lightning.Repo
-
-  import Lightning.JobsFixtures
-  import Lightning.Factories
-
-  alias Lightning.Invocation
+  use LightningWeb.ConnCase, async: false
 
   import Ecto.Query
+  import Lightning.JobsFixtures
+  import Lightning.Factories
+  # import Phoenix.ChannelTest
+
+  alias Lightning.Pipeline
+  alias Lightning.Invocation
+  alias Lightning.Runtime.RuntimeManager
+  alias Lightning.Workers
 
   setup :register_and_log_in_superuser
 
@@ -34,7 +36,6 @@ defmodule LightningWeb.EndToEndTest do
   end
 
   # workflow runs webhook then flow job
-  @tag :skip
   test "the whole thing", %{conn: conn} do
     project = insert(:project)
 
@@ -92,77 +93,139 @@ defmodule LightningWeb.EndToEndTest do
       condition: :on_job_failure
     })
 
-    Oban.Testing.with_testing_mode(:manual, fn ->
-      message = %{"a" => 1}
+    message = %{"a" => 1}
 
-      conn = post(conn, "/i/#{webhook_trigger.id}", message)
+    conn = post(conn, "/i/#{webhook_trigger.id}", message)
 
-      assert %{"run_id" => run_id, "attempt_id" => attempt_id} =
-               json_response(conn, 200)
+    assert %{"work_order_id" => wo_id} = json_response(conn, 200)
 
-      attempt_run =
-        Lightning.Repo.get_by(Lightning.AttemptRun,
-          run_id: run_id,
-          attempt_id: attempt_id
-        )
+    assert %{attempts: [%{id: attempt_id}]} =
+             Lightning.WorkOrders.get(wo_id, include: [:attempts])
 
-      assert_enqueued(
-        worker: Lightning.Pipeline,
-        args: %{attempt_run_id: attempt_run.id}
+    attempt =
+      Lightning.Attempts.get(attempt_id,
+        include: [:runs, workflow: [:triggers, :jobs, :edges]]
       )
 
-      from(r in Lightning.Invocation.Run, where: r.id == ^attempt_run.run_id)
-      |> Lightning.Repo.all()
-      |> then(fn [r] ->
-        p =
-          Ecto.assoc(r, [:job, :project])
-          |> Lightning.Repo.one!()
+    assert %{runs: []} = Lightning.Attempts.get(attempt.id, include: [:runs])
 
-        assert p.id == project.id, "run is associated with a different project"
-      end)
+    rtm_args = "npm exec @openfn/ws-worker -- --backoff 0.5/5"
 
-      # All runs should use Oban
-      assert %{success: 3, cancelled: 0, discard: 0, failure: 0, snoozed: 0} ==
-               Oban.drain_queue(Oban, queue: :runs, with_recursion: true)
+    Application.put_env(:lightning, RuntimeManager,
+      start: true,
+      args: String.split(rtm_args),
+      cd: Path.expand("../../assets", __DIR__)
+    )
 
-      [run_3, run_2, run_1] = Invocation.list_runs_for_project(project).entries
+    System.shell("kill $(lsof -n -i :2222 | grep LISTEN | awk '{print $2}')")
+    {:ok, rtm_server} = RuntimeManager.start_link(name: TestRuntimeManager)
 
-      # Run 1 should succeed and use the appropriate packages
-      assert run_1.finished_at != nil
+    assert Enum.any?(1..10, fn _i ->
+             Process.sleep(100)
 
-      assert Invocation.assemble_logs_for_run(run_1) =~ "Done in"
+             %{runtime_port: port, runtime_os_pid: os_pid} =
+               :sys.get_state(rtm_server)
 
-      r1_logs =
-        Invocation.logs_for_run(run_1)
-        |> Enum.map(fn line -> line.body end)
+             if port do
+               {ps_out, 0} = System.cmd("ps", ["-s", "#{os_pid}", "-o", "cmd="])
 
-      # Check that versions are accurate and printed at the top of each run
-      assert Enum.at(r1_logs, 0) == "[CLI] ℹ Versions:"
-      Enum.at(r1_logs, 1) |> assert_has_expected_version?(:node)
-      Enum.at(r1_logs, 2) |> assert_has_expected_version?(:cli)
-      Enum.at(r1_logs, 3) |> assert_has_expected_version?(:runtime)
-      Enum.at(r1_logs, 4) |> assert_has_expected_version?(:compiler)
-      Enum.at(r1_logs, 5) |> assert_has_expected_version?(:adaptor)
+               nodejs =
+                 ps_out
+                 |> String.split("\n")
+                 |> Enum.reject(&(&1 == ""))
+                 |> List.last()
+                 |> then(&String.trim/1)
 
-      assert Enum.at(r1_logs, 11) =~ "[JOB] ℹ 2"
-      assert Enum.at(r1_logs, 12) =~ "[JOB] ℹ {\"name\":\"ศผ่องรี มมซึฆเ\"}"
-      assert Enum.at(r1_logs, 13) =~ "[R/T] ✔ Operation 1 complete in"
-      assert Enum.at(r1_logs, 15) =~ "[CLI] ✔ Done in"
+               rtm_args =~ "npm exec @openfn/ws-worker -- --backoff 0.5/5" and
+                 Process.alive?(Port.info(port)[:connected])
+             end
+           end)
 
-      # #  Run 2 should fail but not expose a secret
-      assert run_2.finished_at != nil
-      assert run_2.exit_reason == :failed
+    Process.sleep(30_000)
+    assert %{runs: [run]} = Lightning.Attempts.get(attempt.id, include: [:runs])
 
-      log = Invocation.assemble_logs_for_run(run_2)
-      assert log =~ ~S[{"password":"***","username":"quux"}]
-      assert log =~ ~S[Error in runtime execution!]
+    # {:ok, worker_token, _claims} =
+    #   Workers.Token.generate_and_sign(
+    #     %{},
+    #     Lightning.Config.worker_token_signer()
+    #   )
 
-      #  Run 3 should succeed and log "6"
-      assert run_3.finished_at != nil
+    # {:ok, _, socket} =
+    #   socket(WorkerSocket, "worker_id", %{token: worker_token})
+    #   |> subscribe_and_join(AttemptChannel, "attempt:#{attempt.id}", %{
+    #     token: Workers.generate_attempt_token(attempt)
+    #   })
 
-      log = Invocation.assemble_logs_for_run(run_3)
-      assert log =~ "[JOB] ℹ 6"
+    # ref = Phoenix.ChannelTest.push(socket, "fetch:attempt", %{})
+    # assert_reply ref, :ok, %{"id" => attempt_id}
+    # assert attempt_id == attempt.id
+    # ref = Phoenix.ChannelTest.push(socket, "attempt:start", %{})
+    # assert_reply ref, :ok, nil
+
+    # ref =
+    #   Phoenix.ChannelTest.push(socket, "run:start", %{attempt_id: attempt_id})
+
+    # assert_reply ref, :ok, nil
+
+    attempt_run =
+      Lightning.Repo.get_by(Lightning.AttemptRun,
+        run_id: run.id,
+        attempt_id: attempt.id
+      )
+      |> IO.inspect()
+
+    from(r in Lightning.Invocation.Run, where: r.id == ^attempt_run.run_id)
+    |> Lightning.Repo.all()
+    |> then(fn [r] ->
+      p =
+        Ecto.assoc(r, [:job, :project])
+        |> Lightning.Repo.one!()
+
+      assert p.id == project.id, "run is associated with a different project"
     end)
+
+    # All runs should use Oban
+    assert %{success: 3, cancelled: 0, discard: 0, failure: 0, snoozed: 0} ==
+             Oban.drain_queue(Oban, queue: :runs, with_recursion: true)
+
+    [run_3, run_2, run_1] = Invocation.list_runs_for_project(project).entries
+
+    # Run 1 should succeed and use the appropriate packages
+    assert run_1.finished_at != nil
+    assert run_1.exit_code == 0
+
+    assert Pipeline.assemble_logs_for_run(run_1) =~ "Done in"
+
+    r1_logs =
+      Pipeline.logs_for_run(run_1)
+      |> Enum.map(fn line -> line.body end)
+
+    # Check that versions are accurate and printed at the top of each run
+    assert Enum.at(r1_logs, 0) == "[CLI] ℹ Versions:"
+    Enum.at(r1_logs, 1) |> assert_has_expected_version?(:node)
+    Enum.at(r1_logs, 2) |> assert_has_expected_version?(:cli)
+    Enum.at(r1_logs, 3) |> assert_has_expected_version?(:runtime)
+    Enum.at(r1_logs, 4) |> assert_has_expected_version?(:compiler)
+    Enum.at(r1_logs, 5) |> assert_has_expected_version?(:adaptor)
+
+    assert Enum.at(r1_logs, 11) =~ "[JOB] ℹ 2"
+    assert Enum.at(r1_logs, 12) =~ "[JOB] ℹ {\"name\":\"ศผ่องรี มมซึฆเ\"}"
+    assert Enum.at(r1_logs, 13) =~ "[R/T] ✔ Operation 1 complete in"
+    assert Enum.at(r1_logs, 15) =~ "[CLI] ✔ Done in"
+
+    # #  Run 2 should fail but not expose a secret
+    assert run_2.finished_at != nil
+    assert run_2.exit_code == 1
+
+    log = Pipeline.assemble_logs_for_run(run_2)
+    assert log =~ ~S[{"password":"***","username":"quux"}]
+    assert log =~ ~S[Error in runtime execution!]
+
+    #  Run 3 should succeed and log "6"
+    assert run_3.finished_at != nil
+    assert run_3.exit_code == 0
+    log = Pipeline.assemble_logs_for_run(run_3)
+    assert log =~ "[JOB] ℹ 6"
   end
 
   defp webhook_expression do

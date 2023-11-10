@@ -4,6 +4,9 @@ defmodule LightningWeb.WorkerChannel do
 
   @impl true
   def join("worker:queue", _payload, %{assigns: %{token: token}} = socket) do
+    IO.inspect("####################")
+    IO.inspect("worker:queue")
+
     case Workers.verify_worker_token(token) do
       {:ok, claims} ->
         {:ok, assign(socket, :claims, claims)}
@@ -19,8 +22,11 @@ defmodule LightningWeb.WorkerChannel do
 
   @impl true
   def handle_in("claim", %{"demand" => demand}, socket) do
+    IO.inspect("worker:claim")
+
     attempts =
       Attempts.claim(demand)
+      |> IO.inspect()
       |> then(fn {:ok, attempts} ->
         attempts
         |> Enum.map(fn attempt ->
