@@ -1,6 +1,7 @@
 import React from 'react';
+import { useCollapse } from 'react-collapsed'
 import type { FunctionDescription } from '@openfn/describe-package';
-import { marked } from 'marked';
+// import { marked } from 'marked';
 
 type RenderFunctionProps = {
   fn: FunctionDescription;
@@ -82,24 +83,21 @@ const Example = ({ eg, onInsert }: ExampleProps) => {
   )
 }
 const RenderFunction = ({ fn, onInsert }: RenderFunctionProps) => {
-  var onClick = function() {
-    this.classList.toggle("active");
-    var content = this.nextElementSibling;
-    if (content.style.display === "block") {
-      content.style.display = "none";
-    } else {
-      content.style.display = "block";
-    }
-  }
+  const { getCollapseProps, getToggleProps, isExpanded } = useCollapse();
 
   return (
-    <div>
-      <button type="button" onClick={onClick}> className="collapsible-function">{getSignature(fn)}</button>
-      <div className="collapsible-function-content">
-      <p>this function ...</p>
-      </div>
+    <div className="collapsible">
+        <div className="cursor-pointer" {...getToggleProps()}>
+            {getSignature(fn)} {isExpanded ? 'Collapse' : 'Expand'}
+        </div>
+        <div {...getCollapseProps()}>
+            <div className="content">
+                Now you can see the hidden content. <br/><br/>
+                Click again to hide...
+            </div>
+        </div>
     </div>
-  )
+    );
 }
 
 export default RenderFunction;
