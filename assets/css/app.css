@@ -193,6 +193,22 @@ div[id^='tippy-'] {
   transform: rotate(-90deg) !important;
 }
 
+.collapsible-function {
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.active, .collapsible-function:hover {
+  background-color: #ccc;
+}
+
+.collapsible-function-content {
+  padding: 0 18px;
+  display: none;
+  overflow: hidden;
+}
+
 div.line-log-level::before {
   content: attr(data-log-level);
   padding-left: 0.1em;

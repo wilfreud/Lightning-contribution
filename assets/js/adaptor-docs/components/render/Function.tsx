@@ -81,20 +81,24 @@ const Example = ({ eg, onInsert }: ExampleProps) => {
       </section>
   )
 }
-
 const RenderFunction = ({ fn, onInsert }: RenderFunctionProps) => {
+  var onClick = function() {
+    this.classList.toggle("active");
+    var content = this.nextElementSibling;
+    if (content.style.display === "block") {
+      content.style.display = "none";
+    } else {
+      content.style.display = "block";
+    }
+  }
+
   return (
-    <details className="ml-4">
-      <summary className="text-sm text-secondary-700 mb-1 cursor-pointer marker:text-slate-600 marker:text-sm whitespace-nowrap hover:bg-sky-50/50">
-        {getSignature(fn)}
-      </summary>
-      <div className="block mb-4 pl-4">
-        <p className="block text-sm" dangerouslySetInnerHTML={{ __html: marked.parse(fn.description)}}></p>
-        {fn.examples.map((eg, idx) =>
-          <Example eg={eg} onInsert={onInsert} key={`${fn.name}-eg-${idx}`} />
-        )}
-        </div>
-    </details>
+    <div>
+      <button type="button" onClick={onClick}> className="collapsible-function">{getSignature(fn)}</button>
+      <div className="collapsible-function-content">
+      <p>this function ...</p>
+      </div>
+    </div>
   )
 }
 
