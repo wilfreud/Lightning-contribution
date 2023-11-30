@@ -101,5 +101,5 @@ export default (
     }
   }, [commit, cancel, ref]);
 
-  return { placeholders, add };
+  return { placeholders, add, cancel };
 };

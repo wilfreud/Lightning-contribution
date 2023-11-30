@@ -41,9 +41,11 @@ export default React.forwardRef<HTMLElement, WorkflowDiagramProps>(
 
     const updateSelection = useCallback(
       (id?: string) => {
+        console.log(selection, 'se;')
         if (id !== selection) {
-          onSelectionChange(id);
+          console.log(placeholders)
         }
+        onSelectionChange(id);
       },
       [onSelectionChange, selection]
     );
@@ -53,7 +55,7 @@ export default React.forwardRef<HTMLElement, WorkflowDiagramProps>(
       updateSelection(id);
     }, []);
 
-    const { placeholders, add: addPlaceholder } = usePlaceholders(
+    const { placeholders, add: addPlaceholder, cancel: cancelPlaceholder } = usePlaceholders(
       ref,
       store,
       requestSelectionChange
@@ -141,6 +143,11 @@ export default React.forwardRef<HTMLElement, WorkflowDiagramProps>(
         if ((event.target as HTMLElement).closest('[name=add-node]')) {
           addPlaceholder(node);
         } else {
+          if (placeholders.nodes.length > 0) {
+            const e = new CustomEvent('cancel-placeholder', { detail: placeholders.nodes[0].id })
+            cancelPlaceholder(e)
+          }
+
           updateSelection(node.id);
         }
       },
