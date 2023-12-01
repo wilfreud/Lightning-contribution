@@ -111,7 +111,7 @@ defmodule LightningWeb.AttemptLive.Show do
      socket
      |> assign(
        active_menu_item: :runs,
-       page_title: "Attempt",
+       page_title: "Run",
        selected_run_id: nil,
        runs: []
      )

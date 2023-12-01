@@ -204,7 +204,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
                         tooltip={deletion_tooltip_message(@has_multiple_jobs)}
                         data-confirm="Are you sure you want to delete this Job?"
                       >
-                        Delete Job
+                        Delete Step
                       </.button>
                     </label>
                   </div>

@@ -8,7 +8,7 @@ defmodule LightningWeb.AttemptLive.Components do
     ~H"""
     <.detail_list id={"attempt-detail-#{@attempt.id}"} class={@class}>
       <.list_item>
-        <:label>Attempt ID</:label>
+        <:label>Run ID</:label>
         <:value><%= display_short_uuid(@attempt.id) %></:value>
       </.list_item>
       <.list_item>
