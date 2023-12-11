@@ -9,6 +9,8 @@ and this project adheres to
 ## [Unreleased]
 
 ### Added
+- Custom metric to track stalled attempts
+  [#1559](https://github.com/OpenFn/Lightning/issues/1559)
 
 ### Changed
 
