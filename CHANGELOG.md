@@ -12,6 +12,8 @@ and this project adheres to
 
 - Add ellipsis for long job names on the canvas
   [#1217](https://github.com/OpenFn/Lightning/issues/1217)
+- Allow Javascript expressions as conditions for edges
+  [#1498](https://github.com/OpenFn/Lightning/issues/1498)
 
 ### Changed
 
