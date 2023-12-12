@@ -105,7 +105,7 @@ defmodule LightningWeb.EndToEndTest do
           project: project,
           name: "1st-job",
           adaptor: "@openfn/language-http@latest",
-          body: webhook_expression(),
+          body: webhook_body(),
           project_credential: project_credential
         )
 
@@ -113,7 +113,7 @@ defmodule LightningWeb.EndToEndTest do
         insert(:job,
           name: "2nd-job",
           adaptor: "@openfn/language-http@latest",
-          body: flow_expression(),
+          body: on_success_body(),
           workflow: workflow,
           project_credential: project_credential
         )
@@ -129,7 +129,7 @@ defmodule LightningWeb.EndToEndTest do
         insert(:job,
           name: "3rd-job",
           adaptor: "@openfn/language-http@latest",
-          body: catch_expression(),
+          body: on_failure_body(),
           workflow: workflow,
           project_credential: project_credential
         )
@@ -140,6 +140,44 @@ defmodule LightningWeb.EndToEndTest do
         target_job_id: catch_job.id,
         condition: :on_job_failure
       })
+
+      expression1_job =
+        insert(:job,
+          name: "4th-job",
+          adaptor: "@openfn/language-http@latest",
+          body: on_js_condition_body(),
+          workflow: workflow,
+          project_credential: project_credential
+        )
+
+      insert(:edge, %{
+        source_job_id: catch_job.id,
+        workflow: workflow,
+        target_job_id: expression1_job.id,
+        condition: :js_expression,
+        js_expression_label: "less_than_1000",
+        js_expression_body: "state.x < 1000"
+      })
+      |> IO.inspect()
+
+      # expression2_job =
+      #   insert(:job,
+      #     name: "5th-job",
+      #     adaptor: "@openfn/language-http@latest",
+      #     body: on_js_condition_body(),
+      #     workflow: workflow,
+      #     project_credential: project_credential
+      #   )
+
+      # insert(:edge, %{
+      #   source_job_id: expression1_job.id,
+      #   workflow: workflow,
+      #   target_job_id: expression2_job.id,
+      #   condition: :js_expression,
+      #   js_expression_label: "greater_than_10000",
+      #   js_expression_body: "state.x > 10000"
+      # })
+      # |> IO.inspect()
 
       webhook_body = %{"fieldOne" => 123, "fieldTwo" => "some string"}
 
@@ -155,10 +193,21 @@ defmodule LightningWeb.EndToEndTest do
       # wait to complete
       Events.subscribe(attempt)
 
-      assert_receive %Events.AttemptUpdated{
-                       attempt: %{id: ^attempt_id, state: :success}
-                     },
-                     115_000
+      Enum.any?(1..1000, fn _i ->
+        receive do
+          %Events.AttemptUpdated{
+            attempt: %{id: ^attempt_id, state: :success}
+          } ->
+            true
+
+          %{} = event ->
+            Map.get(event, :state) == :crashed && IO.inspect(event)
+            false
+
+          _message ->
+            false
+        end
+      end)
 
       assert %{state: :success} = WorkOrders.get(wo_id)
 
@@ -274,7 +323,7 @@ defmodule LightningWeb.EndToEndTest do
     end
   end
 
-  defp webhook_expression do
+  defp webhook_body do
     "fn(state => {
       state.x = state.data.fieldOne * 2;
       console.log(state.x);
@@ -283,14 +332,14 @@ defmodule LightningWeb.EndToEndTest do
     });"
   end
 
-  defp flow_expression do
+  defp on_success_body do
     "fn(state => {
       console.log(state.configuration);
       throw 'fail!'
     });"
   end
 
-  defp catch_expression do
+  defp on_failure_body do
     "fn(state => {
       state.x = state.x * 3;
       console.log(state.x);
@@ -298,6 +347,14 @@ defmodule LightningWeb.EndToEndTest do
       console.log('but immasecret should be scrubbed');
       console.log('along with its encoded form #{Base.encode64("immasecret")}');
       console.log('and its basic auth form #{Base.encode64("quux:immasecret")}');
+      return state;
+    });"
+  end
+
+  defp on_js_condition_body do
+    "fn(state => {
+      state.x = state.x * 5;
+      console.log(state.x);
       return state;
     });"
   end
