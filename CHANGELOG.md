@@ -14,13 +14,25 @@ and this project adheres to
   [#1217](https://github.com/OpenFn/Lightning/issues/1217)
 - Allow Javascript expressions as conditions for edges
   [#1498](https://github.com/OpenFn/Lightning/issues/1498)
+- Fix Credential Creation Page UI
+  [#1064](https://github.com/OpenFn/Lightning/issues/1064)
 
 ### Changed
+
+- Updated CLI to 0.4.10 (fixes logging)
+- Changed UserBackupToken model to use UTC timestamps (6563cb77)
+- Restore FK relationship between `work_orders` and `attempts` pending a
+  decision re: further partitioning.
+  [#1254](https://github.com/OpenFn/Lightning/issues/1254)
 
 ### Fixed
 
 - Adjusted z-index for Monaco Editor's sibling element to resolve layout
   conflict [#1329](https://github.com/OpenFn/Lightning/issues/1329)
+- Demo script sets up example Runs with their log lines in a consistant order.
+  [#1487](https://github.com/OpenFn/Lightning/issues/1487)
+- Initial credential creation `changes` show `after` as `null` rather a value
+  [#1118](https://github.com/OpenFn/Lightning/issues/1118)
 
 ## [v0.11.0] - 2023-12-06
 
@@ -64,6 +76,8 @@ and this project adheres to
   [#1508](https://github.com/OpenFn/Lightning/issues/1508)
 - Enable user to reauthorize and obtain a new refresh token.
   [#1495](https://github.com/OpenFn/Lightning/issues/1495)
+- Save credential body with types declared on schema
+  [#1518](https://github.com/OpenFn/Lightning/issues/1518)
 
 ## [v0.10.5] - 2023-12-03
 
@@ -90,6 +104,7 @@ and this project adheres to
   [#1254](https://github.com/OpenFn/Lightning/issues/1254)
 - Fix for missing data in 'created' audit trail events for webhook auth methods
   [#1500](https://github.com/OpenFn/Lightning/issues/1500)
+
 
 ## [v0.10.4] - 2023-11-30
 
