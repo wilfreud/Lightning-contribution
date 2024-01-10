@@ -47,8 +47,10 @@ defmodule Lightning.Attempts.PromExPluginText do
         [threshold_seconds]
       }
 
-    [stalled_attempt_polling | _] = PromExPlugin.polling_metrics(
-             stalled_attempt_threshold_seconds: threshold_seconds)
+    [stalled_attempt_polling | _] =
+      PromExPlugin.polling_metrics(
+        stalled_attempt_threshold_seconds: threshold_seconds
+      )
 
     assert %PromEx.MetricTypes.Polling{
              group_name: :lightning_attempt_polling_events,

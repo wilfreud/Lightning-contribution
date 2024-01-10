@@ -37,8 +37,7 @@ defmodule Lightning.PromExTest do
       PromEx.Plugins.Oban,
       PromEx.Plugins.PhoenixLiveView,
       {Lightning.Attempts.PromExPlugin,
-        stalled_attempt_threshold_seconds: stalled_attempt_threshold_seconds}
-
+       stalled_attempt_threshold_seconds: stalled_attempt_threshold_seconds}
     ]
 
     assert Lightning.PromEx.plugins() == expected
