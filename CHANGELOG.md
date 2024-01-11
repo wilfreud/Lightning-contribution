@@ -21,6 +21,8 @@ and this project adheres to
 
 - Fix failure due to creating work order from a newly created job
   [#1572](https://github.com/OpenFn/Lightning/issues/1572)
+- Fix credential body getting leaked to sentry incase of errors
+  [#1600](https://github.com/OpenFn/Lightning/issues/1600)
 
 ## [2.0.0-rc2] - 2023-01-08
 
