@@ -5,6 +5,7 @@ defmodule Lightning.Attempts.PromExPlugin do
   alias Lightning.Repo
   import Ecto.Query
 
+  @average_performance_event [:lightning, :attempt, :processing]
   @stalled_event [:lightning, :attempt, :queue, :stalled]
 
   @impl true
@@ -31,9 +32,12 @@ defmodule Lightning.Attempts.PromExPlugin do
   def polling_metrics(opts) do
     {:ok, stalled_attempt_threshold_seconds} =
       opts |> Keyword.fetch(:stalled_attempt_threshold_seconds)
+    {:ok, attempt_performance_age_seconds} =
+      opts |> Keyword.fetch(:attempt_performance_age_seconds)
 
     [
-      stalled_attempt_metrics(stalled_attempt_threshold_seconds)
+      stalled_attempt_metrics(stalled_attempt_threshold_seconds),
+      attempt_performance_metrics(attempt_performance_age_seconds)
     ]
   end
 
@@ -81,5 +85,22 @@ defmodule Lightning.Attempts.PromExPlugin do
     count = Repo.one(query)
 
     :telemetry.execute(@stalled_event, %{count: count}, %{})
+  end
+
+  defp attempt_performance_metrics(attempt_age_seconds) do
+    Polling.build(
+      :lightning_attempt_polling_events,
+      5000,
+      {__MODULE__, :average_attempt_performance, [attempt_age_seconds]},
+      [
+        last_value(
+          [:lightning, :attempt, :processing, :duration, :milliseconds],
+          event_name: @average_performance_event,
+          description: "The average time taken to process an attempt",
+          measurement: :duration,
+          unit: :millisecond
+        )
+      ]
+    )
   end
 end

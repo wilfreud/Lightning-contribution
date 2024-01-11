@@ -6,8 +6,11 @@ defmodule Lightning.Attempts.PromExPluginText do
 
   alias Lightning.Attempts.PromExPlugin
 
+  @attempt_performance_age_seconds 222
+  @stalled_attempt_threshold_seconds 333
+
   test "event_metrics returns a Promex Event" do
-    event = PromExPlugin.event_metrics(%{})
+    event = PromExPlugin.event_metrics(plugin_config())
 
     assert event.group_name == :rory_test
 
@@ -37,34 +40,59 @@ defmodule Lightning.Attempts.PromExPluginText do
     assert metric.unit == :millisecond
   end
 
-  test "polling_metrics returns a Promex Polling instance" do
-    threshold_seconds = 333
+  describe "polling_metrics" do
+    test "returns a polling instance for stalled attempts" do
+      expected_mfa =
+        {
+          Lightning.Attempts.PromExPlugin,
+          :stalled_attempt_count,
+          [@stalled_attempt_threshold_seconds]
+        }
 
-    expected_mfa =
-      {
-        Lightning.Attempts.PromExPlugin,
-        :stalled_attempt_count,
-        [threshold_seconds]
-      }
+      [stalled_attempt_polling | _] =
+        PromExPlugin.polling_metrics(plugin_config())
 
-    [stalled_attempt_polling | _] =
-      PromExPlugin.polling_metrics(
-        stalled_attempt_threshold_seconds: threshold_seconds
-      )
+      assert %PromEx.MetricTypes.Polling{
+        group_name: :lightning_attempt_polling_events,
+        poll_rate: 5000,
+        measurements_mfa: ^expected_mfa,
+        metrics: [metric | _]
+      } = stalled_attempt_polling
 
-    assert %PromEx.MetricTypes.Polling{
-             group_name: :lightning_attempt_polling_events,
-             poll_rate: 5000,
-             measurements_mfa: ^expected_mfa,
-             metrics: [metric | _]
-           } = stalled_attempt_polling
+      assert %Telemetry.Metrics.LastValue{
+        name: [:lightning, :attempt, :queue, :stalled, :count],
+        event_name: [:lightning, :attempt, :queue, :stalled],
+        description: "The count of attempts stuck in the `available` state",
+        measurement: :count
+      } = metric
+    end
 
-    assert %Telemetry.Metrics.LastValue{
-             name: [:lightning, :attempt, :queue, :stalled, :count],
-             event_name: [:lightning, :attempt, :queue, :stalled],
-             description: "The count of attempts stuck in the `available` state",
-             measurement: :count
-           } = metric
+    test "returns a polling instance for attempt performance" do
+      expected_mfa =
+        {
+          Lightning.Attempts.PromExPlugin,
+          :average_attempt_performance,
+          [@attempt_performance_age_seconds]
+        }
+
+      [_ | [attempt_performance_polling]] =
+        PromExPlugin.polling_metrics(plugin_config())
+
+      assert %PromEx.MetricTypes.Polling{
+        group_name: :lightning_attempt_polling_events,
+        poll_rate: 5000,
+        measurements_mfa: ^expected_mfa,
+        metrics: [metric | _]
+      } = attempt_performance_polling
+
+      assert %Telemetry.Metrics.LastValue{
+        name: [:lightning, :attempt, :processing, :duration, :milliseconds],
+        event_name: [:lightning, :attempt, :processing],
+        description: "The average time taken to process an attempt",
+        measurement: :duration,
+        unit: :millisecond
+      } = metric
+    end
   end
 
   describe "stalled_attempt_count" do
@@ -141,5 +169,16 @@ defmodule Lightning.Attempts.PromExPluginText do
         work_order: build(:workorder)
       )
     end
+  end
+
+  describe ".average_attempt_performance" do
+
+  end
+
+  defp plugin_config() do
+    [
+      {:attempt_performance_age_seconds, @attempt_performance_age_seconds},
+      {:stalled_attempt_threshold_seconds, @stalled_attempt_threshold_seconds}
+    ]
   end
 end
