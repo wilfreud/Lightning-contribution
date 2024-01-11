@@ -5,8 +5,39 @@ defmodule LightningWeb.DataclipLiveTest do
   import Lightning.InvocationFixtures
   import Lightning.Factories
 
-  defp create_dataclip(%{project: project}) do
-    %{dataclip: insert(:dataclip, body: %{}, project: project)}
+  defp create_dataclip(%{project: project, user: user}) do
+    credential =
+      insert(:credential,
+        name: "My Credential",
+        body: %{foo: "bar", pin: 123_456},
+        user: user
+      )
+
+    project_credential =
+      insert(:project_credential, credential: credential, project: project)
+
+    job = insert(:job, project_credential: project_credential)
+
+    dataclip =
+      insert(:dataclip,
+        project: project,
+        type: :run_result,
+        body: %{
+          integer: 123_456,
+          map: %{list: [%{"any-key" => "some-bars"}]},
+          bool: true
+        }
+      )
+
+    insert(:run,
+      credential: credential,
+      exit_reason: "success",
+      job: job,
+      input_dataclip: build(:dataclip),
+      output_dataclip: dataclip
+    )
+
+    %{dataclip: dataclip}
   end
 
   setup :register_and_log_in_user
@@ -191,6 +222,33 @@ defmodule LightningWeb.DataclipLiveTest do
 
       assert error ==
                {:error, {:redirect, %{flash: %{"nav" => :not_found}, to: "/"}}}
+    end
+
+    test "shows scrubbed dataclip", %{
+      conn: conn,
+      dataclip: dataclip,
+      project: project
+    } do
+      {:ok, view, html} =
+        live(
+          conn,
+          Routes.project_dataclip_edit_path(
+            conn,
+            :edit,
+            project.id,
+            dataclip.id
+          )
+        )
+
+      dataclip_text =
+        element(view, "#dataclip-form_body")
+        |> render()
+        |> String.replace("&amp;quot;", "\"")
+
+      assert html =~ dataclip.id
+      assert dataclip_text =~ ~S("integer":"***")
+      assert dataclip_text =~ ~S("map":{"list":[{"any-key":"some-***s"}]})
+      assert dataclip_text =~ ~S("bool":true)
     end
   end
 end

@@ -65,8 +65,9 @@ defmodule Lightning.Invocation do
   end
 
   @spec get_dataclip_details!(id :: Ecto.UUID.t()) :: Dataclip.t()
-  def get_dataclip_details!(id),
-    do: Repo.get!(Query.dataclip_with_body(), id)
+  def get_dataclip_details!(id) do
+    Repo.get!(Query.dataclip_with_body(), id) |> Repo.preload(:source_run)
+  end
 
   @spec get_dataclip_for_attempt(attempt_id :: Ecto.UUID.t()) ::
           Dataclip.t() | nil

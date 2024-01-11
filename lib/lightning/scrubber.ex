@@ -33,8 +33,33 @@ defmodule Lightning.Scrubber do
       |> then(fn samples -> {samples} end)
     end
 
-    @spec scrub(state :: t(), data :: String.t() | nil) :: String.t()
+    @spec scrub(state :: t(), data :: String.t() | map() | nil) :: String.t()
     def scrub(_state, nil), do: nil
+
+    def scrub({samples}, json) when is_map(json) do
+      Map.new(json, fn
+        {key, map} when is_map(map) ->
+          {key, scrub({samples}, map)}
+
+        {key, list} when is_list(list) ->
+          {key, Enum.map(list, &scrub({samples}, &1))}
+
+        {key, string} when is_binary(string) ->
+          {key, scrub({samples}, string)}
+
+        {key, orig_value} ->
+          # {"some-key": ***} is an invalid JSON so format the value when it's not a string
+          # so that when replaced it produces {"some-key": "***"} instead
+          value_str = to_string(orig_value)
+          scrubbed = scrub({samples}, value_str)
+
+          if scrubbed == value_str do
+            {key, orig_value}
+          else
+            {key, scrubbed}
+          end
+      end)
+    end
 
     def scrub({samples}, string) when is_binary(string) do
       samples
